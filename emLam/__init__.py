@@ -1,0 +1,1 @@
+WORD, LEMMA, POS, LEMMA_POS = 0, 1, 2, -1
