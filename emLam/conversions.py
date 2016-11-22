@@ -11,8 +11,8 @@ from emLam import WORD, LEMMA, POS
 
 
 _univ_re = re.compile(r'([[][^[]+[]])')
-_univ_pos_re = re.compile(r'/([^]]+)\]')
-_univ_hyph_re = re.compile(r'^\[Hyph:[^]]+\]$')
+_univ_pos_re = re.compile(r'/([^]]+)\]|(Adj\|nat)\]')
+_univ_hyph_re = re.compile(r'^\[Hyph:[^]]+\]|\[Punct\]$')
 # To fix erroneous tagging
 _univ_map = {
     '[N]': '[/N]',
@@ -20,6 +20,8 @@ _univ_map = {
     '[Num]': '[/Num]',
     '[_Mod]': '[_Mod/V]',
 }
+# Drop the 'default' inflections (zero morphemes)
+_univ_drop = set(['[Nom]', '[Prs.NDef.3Sg]'])
 
 
 def field_word(fields):
@@ -28,6 +30,40 @@ def field_word(fields):
 
 def field_lemma(fields):
     return [fields[LEMMA]]
+
+
+def field_full_pos(fields):
+    """The full POS field."""
+    return [fields[POS]]
+
+
+def field_pos_inf(fields):
+    """The POS tag + the inflections as separate tokens."""
+    univ = fields[POS]
+    if '[' in univ and not _univ_hyph_re.match(univ):  # not OTHER, maybe sth else too
+        pos_ana = [None]
+        infl_ana = []
+        form = 0
+        parts = _univ_re.findall(univ)
+        for part in parts:
+            part = _univ_map.get(part, part)
+            if part == '[/Supl]':  # Delete 'leg', but remember it
+                form = 2
+            elif part.startswith('[_Comp'):
+                form = max(form, 1)
+            posm = _univ_pos_re.search(part)
+            if posm:
+                pos_ana[0] = posm.group(1) or posm.group(2)
+            else:
+                if part not in _univ_drop:
+                    infl_ana.append(part)
+        if form == 1:
+            pos_ana.append('[Comp]')
+        elif form == 2:
+            pos_ana.append('[Supl]')
+        return pos_ana + infl_ana
+    else:
+        return ['OTHER']
 
 
 def field_lemma_inf(fields):
@@ -59,14 +95,16 @@ def _field_lemma_inf(fields, keep_pos=False):
             part = _univ_map.get(part, part)
             if part == '[/Supl]':  # Delete 'leg', but remember it
                 form = 2
-            if part.startswith('[/') and keep_pos:  # POS tag
-                word_ana[-1] += part
+            if part.startswith('[/'):  # POS tag
+                if keep_pos:
+                    word_ana[-1] += part
             elif part.startswith('[_Comp'):
                 form = max(form, 1)
             elif part.startswith('[_'):
                 word_ana[-1] += part
             else:
-                infl_ana.append(part)
+                if part not in _univ_drop:
+                    infl_ana.append(part)
         if form == 1:
             word_ana.append('[Comp]')
         elif form == 2:
