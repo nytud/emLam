@@ -62,6 +62,8 @@ def main():
     if not os.path.isdir(args.target_dir):
         os.makedirs(args.target_dir)
 
+    os.nice(20)  # Play nice
+
     for t in source_target_file_list(args.source_dir, args.target_dir):
         partial(preprocess_szeged, keep_columns=args.keep_columns)(t)
 

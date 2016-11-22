@@ -63,6 +63,8 @@ def main():
     if not os.path.isdir(args.target_dir):
         os.makedirs(args.target_dir)
 
+    os.nice(20)  # Play nice
+
     files = source_target_file_list(args.source_dir, args.target_dir)
     fn = partial(convert, field_fun=field_fun, lowercase=args.lower)
     run_function(fn, files, args.processes)
