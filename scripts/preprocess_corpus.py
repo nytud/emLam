@@ -69,6 +69,7 @@ def source_target_file_list(source_dir, target_dir):
         td = op.dirname(tf)
         if not op.isdir(td):
             os.makedirs(td)
+        target_files.append(tf)
     return zip(source_files, target_files)
 
 
