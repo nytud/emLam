@@ -22,4 +22,5 @@ def get_all_corpora():
         if module_name and module_name != 'corpus_base':
             module = importlib.import_module(__name__ + '.' + module_name)
             for cls in inspect.getmembers(module, partial(is_mod_class, module)):
-                corpora[module_name] = cls
+                corpora[module_name] = cls[1]
+    return corpora

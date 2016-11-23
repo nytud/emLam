@@ -9,8 +9,10 @@ from __future__ import absolute_import, division, print_function
 from argparse import ArgumentParser
 from functools import partial
 import os
+import os.path as op
 
-from emLam.utils import openall, source_target_file_list
+from emLam.corpus import get_all_corpora
+from emLam.utils import run_function
 
 
 def parse_arguments():
@@ -20,46 +22,69 @@ def parse_arguments():
                         help='the source directory.')
     parser.add_argument('--target-dir', '-t', required=True,
                         help='the target directory.')
+    parser.add_argument('--processes', '-p', type=int, default=1,
+                        help='the number of files to process parallelly.')
+    subparsers = parser.add_subparsers(
+        title='Corpus selection',
+        description='This section lists the corpora processor available for '
+                    'selection. For help on a specific corpus, call the '
+                    'script with the `<corp> -h` arguments.',
+        dest='corpus', help='the corpora processors available.')
+    corpora = get_all_corpora()
+    for _, corpus_class in sorted(corpora.items()):
+        corpus_class.parser(subparsers)
 
     args = parser.parse_args()
+    print(args)
     if args.source_dir == args.target_dir:
         parser.error('Source and target directories must differ.')
+    args.corpus = corpora[args.corpus].instantiate(**args.__dict__)
+
     return args
 
 
-def preprocess_szeged(source_target_file, keep_columns):
-    source_file, target_file = source_target_file
-    with openall(source_file) as inf, openall(target_file, 'wt') as outf:
-        for line_no, line in enumerate(inf):
-            if line == '\n':
-                print(u'', file=outf)
-            else:
-                fields = line.rstrip('\n').split('\t')
-                pos_start = fields[LEMMA_POS].find('[')
-                if pos_start >= 0:
-                    lemma = fields[LEMMA_POS][:pos_start]
-                    pos = fields[LEMMA_POS][pos_start:]
-                else:
-                    # OTHER
-                    lemma = fields[LEMMA]
-                    pos = fields[LEMMA_POS]
-                out_fields = [fields[WORD], lemma, pos]
-                if keep_columns:
-                    out_fields.extend(fields[2:-1])
-                print(u'\t'.join(out_fields), file=outf)
+def walk_non_hidden(directory):
+    """Walks directory as os.walk, skipping hidden files and directories."""
+    def delete_hidden(lst):
+        for i in range(len(lst) - 1, -1, -1):
+            if lst[i][0] == '.':
+                del lst[i]
+
+    for tup in os.walk(directory):
+        dirpath, dirnames, filenames = tup
+        delete_hidden(dirnames)
+        delete_hidden(filenames)
+        yield tup
+
+
+def source_target_file_list(source_dir, target_dir):
+    source_dir = op.abspath(source_dir)
+    target_dir = op.abspath(target_dir)
+    source_files = [op.abspath(op.join(d, f))
+                    for d, _, fs in walk_non_hidden(source_dir) for f in fs]
+    target_files = []
+    for sf in source_files:
+        sf_rel = sf[len(source_dir):].lstrip(os.sep)
+        tf = op.join(target_dir, sf_rel)
+        td = op.dirname(tf)
+        if not op.isdir(td):
+            os.makedirs(td)
+    return zip(source_files, target_files)
+
+
+def process_file(source_target_files, preprocessor):
+    preprocessor.preprocess_files(*source_target_files)
 
 
 def main():
     args = parse_arguments()
-    if not os.path.isdir(args.target_dir):
-        os.makedirs(args.target_dir)
-
     os.nice(20)  # Play nice
 
-    for t in source_target_file_list(args.source_dir, args.target_dir):
-        partial(preprocess_szeged, keep_columns=args.keep_columns)(t)
+    source_target_files = source_target_file_list(args.source_dir, args.target_dir)
+
+    run_function(partial(process_file, preprocessor=args.corpus),
+                 source_target_files, args.processes)
 
 
 if __name__ == '__main__':
     main()
-

@@ -30,8 +30,9 @@ class SzegedPreprocessing(Preprocessing):
                     out_fields.extend(fields[2:-1])
                 print(u'\t'.join(out_fields), file=output_stream)
 
+    @classmethod
     def parser(cls, subparsers):
-        parser = subparsers.add_parser('hu_szeged', help='Szeged Treebank options')
+        parser = subparsers.add_parser('hu_szeged', help='Szeged Treebank')
         parser.add_argument('--keep-columns', '-k', action='store_true',
                             help='keep all columns. By default, the output files '
                                  'will only have 3 columns: word, lemma, POS.')
