@@ -5,7 +5,7 @@ from __future__ import absolute_import, division, print_function
 from builtins import map
 import bz2
 import gzip
-from io import open
+from io import open, TextIOWrapper
 from multiprocessing import Pool
 import os
 import os.path as op
@@ -48,15 +48,15 @@ else:
         - the default mode is 'rt'
         - the default compresslevel is 5, because e.g. gzip does not benefit a lot
           from higher values, only becomes slower.
-        TODO: make gzip and bz2 work at least with encoding
         """
         if filename.endswith('.gz'):
-            return gzip.open(filename, mode, compresslevel)
+            f = gzip.open(filename, mode, compresslevel)
         elif filename.endswith('.bz2'):
-            return bz2.open(filename, mode, compresslevel)
+            f = bz2.open(filename, mode, compresslevel)
         else:
             return open(filename, mode, buffering, encoding, errors, newline,
                         closefd)
+        return TextIOWrapper(f, encoding, errors, newline)
 
 
 def allname(fn):

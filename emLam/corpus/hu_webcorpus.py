@@ -6,18 +6,22 @@ from html.parser import HTMLParser  # Needs future, too
 import re
 import tarfile
 
-from emLam.corpus.corpus_base import Preprocessing
+from emLam.corpus.gate_corpus import GATEPreprocessing
 from emLam.utils import openall
 
 
-class WebcorpusPreprocessing(Preprocessing):
+class WebcorpusPreprocessing(GATEPreprocessing):
     rename_p = re.compile(r'\.tar(\.gz)$')
 
-    def __init__(self, compressed=True):
+    def __init__(self, gate_url, max_length=10000, compressed=True,
+                 max_entities=0.2):
+        super(WebcorpusPreprocessing, self).__init__(gate_url, max_length)
         if compressed:
             self.input_stream = self.enumerate_tar
         else:
             self.input_stream = self.enumerate_file
+        self.max_entities = max_entities
+        self.html_parser = HTMLParser()
 
     def preprocess_files(self, input_file, output_file):
         """
@@ -25,16 +29,25 @@ class WebcorpusPreprocessing(Preprocessing):
         the former case, modifies the output_file name so that the '.tar' part
         is not included in it.
         """
-        if compressed:
+        if self.compressed:
             output_file = self.rename_p.sub(r'\1', output_file)
-        with openall(output_file, 'wt') as outf:
-            for inf in self.input_stream(input_file):
+        with openall(output_file, 'wt', encoding='utf-8') as outf:
+            for inf in self.input_stream(input_file, encoding='iso-8859-2'):
                 self.preprocess(inf, outf)
 
-    def preprocess(self, input_stream, output_stream):
+    def _read_input(self, input_stream):
+        """A generator that returns a chunk of text at a time."""
         for line in input_stream:
             if line.startswith('<s>'):
-
+                text = line[3:]
+                amps = text.count(u'&')
+                if len(amps) > 0:
+                    text = self.html_parser.unescape(text)
+                    entities = text.count(u'&') - amps
+                    if entities / float(len(text)) > self.max_entities:
+                        # Skip sentence if too many entities (i.e. foreign script)
+                        continue
+                yield text
 
     @classmethod
     def parser(cls, subparsers):
