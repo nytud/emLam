@@ -58,7 +58,8 @@ class GATEPreprocessing(Preprocessing):
         try:
             mod_args = dict(kwargs)
             mod_args['gate_url'] = kwargs['gate_url'][process_id - 1]
-            super(GATEPreprocessing, cls).instantiate(process_id, **mod_args)
+            return super(GATEPreprocessing, cls).instantiate(process_id,
+                                                             **mod_args)
         except:
             raise ValueError('At least as many gate servers must be specified '
                              'as there are processes.')
