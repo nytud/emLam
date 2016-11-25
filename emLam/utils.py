@@ -37,6 +37,14 @@ if sys.version_info.major == 3:
             return open(filename, mode, buffering, encoding, errors, newline,
                         closefd, opener)
 else:
+    class PatchedGzipFile(gzip.GzipFile):
+        """
+        GzipFile does not implement read1(), which is need by TextIOWrapper.
+        Good, consistent API design! :/ See https://bugs.python.org/issue10791.
+        """
+        def read1(self, n):
+                return self.read(n)
+
     def openall(
         filename, mode='rt', encoding=None, errors=None, newline=None,
         buffering=-1, closefd=True, opener=None,  # for open()
@@ -50,7 +58,7 @@ else:
           from higher values, only becomes slower.
         """
         if filename.endswith('.gz'):
-            f = gzip.open(filename, mode, compresslevel)
+            f = PatchedGzipFile(filename, mode, compresslevel)
         elif filename.endswith('.bz2'):
             f = bz2.open(filename, mode, compresslevel)
         else:
