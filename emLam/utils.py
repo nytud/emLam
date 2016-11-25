@@ -4,11 +4,13 @@
 from __future__ import absolute_import, division, print_function
 from builtins import map
 import bz2
+from functools import partial
 import gzip
 from io import open, TextIOWrapper
-from multiprocessing import Pool
+from multiprocessing import Manager, Pool
 import os
 import os.path as op
+from queue import Queue
 import re
 import sys
 
@@ -99,4 +101,27 @@ def run_function(fn, params, processes=1):
         return list(map(fn, params))
     else:
         p = Pool(processes)
-        return p.map(fn, params)
+        ret = p.map(fn, params)
+        p.close()
+        p.join()
+        return ret
+
+
+def run_queued(fn, params, processes=1, queued_params=None):
+    """
+    Same as run_function, but the function should be such that it accepts a
+    parameter queue and reads its inputs from there; params still contains
+    options for the function.
+    """
+    if processes < 1:
+        raise ValueError('Number of processes must be at least 1.')
+    queue = Queue() if processes == 1 else Manager().Queue()
+    f = partial(fn, queue=queue)
+    if processes == 1:
+        return list(map(f, params))
+    else:
+        p = Pool(processes)
+        ret = p.map(f, params)
+        p.close()
+        p.join()
+        return ret

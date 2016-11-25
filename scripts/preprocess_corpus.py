@@ -6,13 +6,14 @@ Webcorpus and MNSZ2.
 """
 
 from __future__ import absolute_import, division, print_function
+from builtins import range
 from argparse import ArgumentParser
-from functools import partial
 import os
 import os.path as op
+from queue import Empty
 
 from emLam.corpus import get_all_corpora
-from emLam.utils import run_function
+from emLam.utils import run_queued
 
 
 def parse_arguments():
@@ -38,7 +39,7 @@ def parse_arguments():
     print(args)
     if args.source_dir == args.target_dir:
         parser.error('Source and target directories must differ.')
-    args.corpus = corpora[args.corpus].instantiate(**args.__dict__)
+    args.corpus = corpora[args.corpus]
 
     return args
 
@@ -73,18 +74,24 @@ def source_target_file_list(source_dir, target_dir):
     return zip(source_files, target_files)
 
 
-def process_file(source_target_files, preprocessor):
-    preprocessor.preprocess_files(*source_target_files)
+def process_file(preprocessor, queue):
+    while True:
+        try:
+            infile, outfile = queue.get_nowait()
+            preprocessor.preprocess_files(infile, outfile)
+        except Empty:
+            break
 
 
 def main():
     args = parse_arguments()
+    preprocessors = [args.corpus.instantiate(p, **args.__dict__)
+                     for p in range(args.processes)]
     os.nice(20)  # Play nice
 
     source_target_files = source_target_file_list(args.source_dir, args.target_dir)
 
-    run_function(partial(process_file, preprocessor=args.corpus),
-                 source_target_files, args.processes)
+    run_queued(process_file, preprocessors, args.processes, source_target_files)
 
 
 if __name__ == '__main__':
