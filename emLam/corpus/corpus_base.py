@@ -30,8 +30,12 @@ class Preprocessing(object):
         raise NotImplementedError('parser() must be implemented')
 
     @classmethod
-    def instantiate(cls, **kwargs):
-        """Instantiates the class from keyword arguments."""
+    def instantiate(cls, process_id=1, **kwargs):
+        """
+        Instantiates the class from keyword arguments. The process_id (not a
+        real pid, but an ordinal starting from 1) is there so that preprocessors
+        that use external resources can "plan" accordingly.
+        """
         argspec = inspect.getargspec(cls.__init__).args
         corpus_args = {k: kwargs[k] for k in argspec[1:] if k in kwargs}
         return cls(**corpus_args)

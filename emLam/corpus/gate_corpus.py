@@ -44,8 +44,21 @@ class GATEPreprocessing(Preprocessing):
         subclasses in parser().
         """
         # TODO Use ArgumentParser(parents=)
-        subparser.add_argument('--gate-url', '-G', required=True,
-                               help='the host:port of the GATE server.')
+        subparser.add_argument('--gate-url', '-G', required=True, action='append',
+                               help='the <host>:<port> of the GATE server. If '
+                                    'multiple processes are used, at least as '
+                                    'many servers should be given as there are '
+                                    'processes.')
         subparser.add_argument('--max-length', '-l', type=int, default=10000,
                                help='the length of a text chunk to send to GATE '
                                     '[10000].')
+
+    @classmethod
+    def instantiate(cls, process_id=1, **kwargs):
+        try:
+            mod_args = dict(kwargs)
+            mod_args['gate_url'] = kwargs['gate_url'][process_id - 1]
+            super(GATEPreprocessing, cls).instantiate(process_id, **mod_args)
+        except:
+            raise ValueError('At least as many gate servers must be specified '
+                             'as there are processes.')
