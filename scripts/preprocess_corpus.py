@@ -36,7 +36,6 @@ def parse_arguments():
         corpus_class.parser(subparsers)
 
     args = parser.parse_args()
-    print(args)
     if args.source_dir == args.target_dir:
         parser.error('Source and target directories must differ.')
     args.corpus = corpora[args.corpus]
