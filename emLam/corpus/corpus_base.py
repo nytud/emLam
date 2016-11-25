@@ -30,10 +30,10 @@ class Preprocessing(object):
         raise NotImplementedError('parser() must be implemented')
 
     @classmethod
-    def instantiate(cls, process_id=1, **kwargs):
+    def instantiate(cls, process_id=0, **kwargs):
         """
         Instantiates the class from keyword arguments. The process_id (not a
-        real pid, but an ordinal starting from 1) is there so that preprocessors
+        real pid, but an ordinal starting from 0) is there so that preprocessors
         that use external resources can "plan" accordingly.
         """
         argspec = inspect.getargspec(cls.__init__).args

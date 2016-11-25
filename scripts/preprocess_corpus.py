@@ -85,8 +85,12 @@ def process_file(preprocessor, queue):
 
 def main():
     args = parse_arguments()
-    preprocessors = [args.corpus.instantiate(p, **args.__dict__)
-                     for p in range(args.processes)]
+    try:
+        preprocessors = [args.corpus.instantiate(p, **args.__dict__)
+                         for p in range(args.processes)]
+    except ValueError as ve:
+        # TODO logging
+        raise
     os.nice(20)  # Play nice
 
     source_target_files = source_target_file_list(args.source_dir, args.target_dir)

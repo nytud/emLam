@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function
 from io import BytesIO
 import re
-import urllib
+from future.moves.urllib.parse import urlencode
 
 from lxml import etree
 import requests
@@ -17,8 +17,8 @@ def parse_with_gate(text, gate_url, anas=False):
     """Parses a text with a running GATE server."""
     r = requests.get(
         'http://{}/process?{}'.format(
-            gate_url, urllib.urlencode({'run': 'QT,HFSTLemm,ML3-PosLem-hfstcode',
-                                        'text': text.encode('utf-8')}))
+            gate_url, urlencode({'run': 'QT,HFSTLemm,ML3-PosLem-hfstcode',
+                                 'text': text.encode('utf-8')}))
     )
     assert r.status_code == 200, \
         'No error, but unsuccessful request with text {}{}'.format(
