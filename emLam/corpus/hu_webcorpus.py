@@ -38,7 +38,7 @@ class WebcorpusPreprocessing(GATEPreprocessing):
     def _read_input(self, input_stream):
         """A generator that returns a chunk of text at a time."""
         for line in input_stream:
-            if line.startswith('<s>'):
+            if line.startswith(u'<s>'):
                 text = line[3:]
                 amps = text.count(u'&')
                 if amps > 0:
@@ -67,11 +67,11 @@ class WebcorpusPreprocessing(GATEPreprocessing):
     def enumerate_tar(archive):
         if not tarfile.is_tarfile(archive):
             return  # TODO
-        with tarfile.open(archive, encoding='iso-8859-2') as tf:
+        with tarfile.open(archive) as tf:
             for member in tf.getmembers():
                 if member.isfile():
                     member_f = tf.extractfile(member.name)
-                    yield member_f
+                    yield (line.decode('iso-8859-2') for line in member_f)
                     member_f.close()
 
     @staticmethod

@@ -41,8 +41,9 @@ if sys.version_info.major == 3:
 else:
     class PatchedGzipFile(gzip.GzipFile):
         """
-        GzipFile does not implement read1(), which is need by TextIOWrapper.
-        Good, consistent API design! :/ See https://bugs.python.org/issue10791.
+        GzipFile in Python 2.7 does not implement read1(), which is needed by
+        TextIOWrapper.  Good, consistent API design! :/
+        See https://bugs.python.org/issue10791.
         """
         def read1(self, n):
                 return self.read(n)
@@ -115,7 +116,11 @@ def run_queued(fn, params, processes=1, queued_params=None):
     """
     if processes < 1:
         raise ValueError('Number of processes must be at least 1.')
+
     queue = Queue() if processes == 1 else Manager().Queue()
+    for qp in queued_params:
+        queue.put_nowait(qp)
+
     f = partial(fn, queue=queue)
     if processes == 1:
         return list(map(f, params))
