@@ -10,6 +10,7 @@ from lxml import etree
 import requests
 
 
+_gate_modules = 'ML3-SSTok,HFSTLemm,ML3-PosLem-hfstcode'  # Opt: 'QT,...
 _anas_p = re.compile(r'{ana=([^}]+), feats=([^}]+])(?:, incorrect=[^,}]+)?, lemma=([^}]+)?}')
 
 
@@ -17,7 +18,7 @@ def parse_with_gate(text, gate_url, anas=False):
     """Parses a text with a running GATE server."""
     r = requests.get(
         'http://{}/process?{}'.format(
-            gate_url, urlencode({'run': 'QT,HFSTLemm,ML3-PosLem-hfstcode',
+            gate_url, urlencode({'run': _gate_modules,
                                  'text': text.encode('utf-8')}))
     )
     assert r.status_code == 200, \
