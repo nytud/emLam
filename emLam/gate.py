@@ -10,7 +10,7 @@ from lxml import etree
 import requests
 
 
-_gate_modules = 'ML3-SSTok,HFSTLemm,ML3-PosLem-hfstcode'  # Opt: 'QT,...
+_gate_modules = 'QT,HFSTLemm,ML3-PosLem-hfstcode'  # Opt: 'ML3-SSTok,...
 _anas_p = re.compile(r'{ana=([^}]+), feats=([^}]+])(?:, incorrect=[^,}]+)?, lemma=([^}]+)?}')
 
 
