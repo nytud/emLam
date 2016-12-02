@@ -3,6 +3,8 @@
 
 from __future__ import absolute_import, division, print_function
 from html.parser import HTMLParser  # Needs future, too
+import io
+import itertools
 import re
 import tarfile
 
@@ -32,8 +34,8 @@ class WebcorpusPreprocessing(GATEPreprocessing):
         else:
             input_stream = self.enumerate_file
         with openall(output_file, 'wt', encoding='utf-8') as outf:
-            for inf in input_stream(input_file):
-                self.preprocess(inf, outf)
+            inf = itertools.chain.from_iterable(input_stream(input_file))
+            self.preprocess(inf, outf)
 
     def _read_input(self, input_stream):
         """A generator that returns a chunk of text at a time."""
@@ -71,7 +73,8 @@ class WebcorpusPreprocessing(GATEPreprocessing):
             for member in tf.getmembers():
                 if member.isfile():
                     member_f = tf.extractfile(member.name)
-                    yield (line.decode('iso-8859-2') for line in member_f)
+                    yield io.TextIOWrapper(member_f, encoding='iso-8859-2')
+                    yield [u'<s>\n']  # To separate files
                     member_f.close()
 
     @staticmethod

@@ -13,7 +13,10 @@ class GATEPreprocessing(Preprocessing):
         self.max_length = max_length
 
     def preprocess(self, input_stream, output_stream):
-        for parsed in self._parse_with_gate(input_stream):
+        for chunk, parsed in enumerate(self._parse_with_gate(input_stream)):
+            if chunk > 0:
+                # Preserve the empty sentence separator line between chunks
+                print(u'', file=output_stream)
             print(u'\n\n'.join(u'\n'.join(u'\t'.join(token) for token in sent)
                                for sent in parsed),
                   file=output_stream)
