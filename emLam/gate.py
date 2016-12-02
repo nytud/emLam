@@ -9,6 +9,8 @@ from future.moves.urllib.parse import urlencode
 from lxml import etree
 import requests
 
+from emLam import WORD, LEMMA
+
 
 _gate_modules = 'QT,HFSTLemm,ML3-PosLem-hfstcode'  # Opt: 'ML3-SSTok,...
 _anas_p = re.compile(r'{ana=([^}]+), feats=([^}]+])(?:, incorrect=[^,}]+)?, lemma=([^}]+)?}')
@@ -50,9 +52,12 @@ def parse_gate_xml_file(xml_file, get_anas=False):
         else:  # end
             if node.tag == 'Annotation':
                 if node.get('Type') == 'Token':
+                    # The lemma might be None
+                    if tup[LEMMA] is None:
+                        tup[LEMMA] = tup[WORD]
                     if get_anas:
                         # If requested, find the analysis that matches lemma & POS
-                        _, lemma, pos, anas = tup
+                        word, lemma, pos, anas = tup
                         if anas:
                             for ana in anas.split(';'):
                                 try:
