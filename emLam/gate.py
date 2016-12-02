@@ -28,6 +28,60 @@ def parse_with_gate(text, gate_url, anas=False):
 
 
 def parse_gate_xml_file(xml_file, get_anas=False):
+    """
+    Parses a GATE response from a file. We use a SAX(-like?) parser, because
+    only iterparse() provide the huge_tree argument, and it is needed sometimes
+    if the analysis for a word is too long. Much uglier than the dom-based
+    solution, but what can one do?
+    """
+    text, sent = [], []
+    token_feats = {'string': 0, 'lemma': 1, 'hfstana': 2}
+    if get_anas:
+        token_feats['anas'] = 3
+    curr_token_feat = None
+    tup = None
+    for event, node in etree.iterparse(xml_file, huge_tree=True, events=['start', 'end']):
+        if event == 'start':
+            if node.tag == 'Annotation':
+                if node.get('Type') == 'Token':
+                    tup = [None, None, None, None]
+            elif node.tag == 'Name' and tup and node.text in token_feats:
+                curr_token_feat = node.text
+            elif node.tag == 'Value' and curr_token_feat:
+                tup[token_feats[curr_token_feat]] = node.text
+                curr_token_feat = None
+        else:  # end
+            if node.tag == 'Annotation':
+                if node.get('Type') == 'Token':
+                    if get_anas:
+                        # If requested, find the analysis that matches lemma & POS
+                        _, lemma, pos, anas = tup
+                        if anas:
+                            for ana in anas.split(';'):
+                                try:
+                                    a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
+                                except:
+                                    print(u'Strange ana {} / {} {}'.format(ana, lemma, pos))
+                                    raise
+                                if a_pos == pos and a_lemma == lemma:
+                                    # This is the right analysis
+                                    break
+                            else:
+                                a_ana = ''
+                                # No matching analysis
+                        else:
+                            a_ana = ''
+                            # Empty anas
+                        tup[-1] = a_ana
+                    sent.append(tup[:len(token_feats)])
+                    tup = None
+                elif node.get('Type') == 'Sentence':
+                    text.append(sent)
+                    sent = []
+    return text
+
+
+def parse_gate_xml_file_dom(xml_file, get_anas=False):
     """Parses a GATE response from a file."""
     dom = etree.parse(xml_file)
     root = dom.getroot()
