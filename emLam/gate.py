@@ -39,6 +39,7 @@ class Gate(object):
         self.restart_every = restart_every
         self.modules = modules
         self.server = None
+        self.parsed = 0
         self._start_server()
 
     def _gate_url(self):
@@ -51,6 +52,7 @@ class Gate(object):
     def _start_server(self):
         self.server = Popen(['./gate-server.sh', self.gate_props],
                             cwd=self.gate_dir)
+        self.parsed = 0
         time.sleep(10)
 
     def _stop_server(self):
@@ -75,7 +77,13 @@ class Gate(object):
             assert r.status_code == 200, \
                 'No error, but unsuccessful request with text {}{}'.format(
                     text[:100], '...' if len(text) > 0 else '')
-            return parse_gate_xml(r.content, anas)
+            parsed = parse_gate_xml(r.content, anas)
+            if self.restart_every:
+                self.parsed += len(parsed)
+                if self.parsed >= self.restart_every:
+                    self._stop_server()
+                    self._start_server()
+            return parsed
         except Exception as e:
             # TODO: logging, retries, etc.
             print('Received error message: {}; stopping server.'.format(e),

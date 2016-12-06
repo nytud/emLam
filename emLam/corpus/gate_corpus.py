@@ -8,9 +8,10 @@ from emLam.corpus.corpus_base import Preprocessing
 
 
 class GATEPreprocessing(Preprocessing):
-    def __init__(self, gate_url, max_length=10000):
-        self.gate_url = gate_url
+    def __init__(self, gate_props, max_length=10000, restart_every=0):
+        self.gate_props = gate_props
         self.max_length = max_length
+        self.restart_every = restart_every
 
     def preprocess(self, input_stream, output_stream):
         for chunk, parsed in enumerate(self._parse_with_gate(input_stream)):
@@ -47,14 +48,20 @@ class GATEPreprocessing(Preprocessing):
         subclasses in parser().
         """
         # TODO Use ArgumentParser(parents=)
-        subparser.add_argument('--gate-url', '-G', required=True, action='append',
-                               help='the <host>:<port> of the GATE server. If '
+        subparser.add_argument('--gate-props', '-G', required=True, action='append',
+                               help='the hunlp-GATE property file used to '
+                                    'start the server. If '
                                     'multiple processes are used, at least as '
-                                    'many servers should be given as there are '
+                                    'many files should be given as there are '
                                     'processes.')
         subparser.add_argument('--max-length', '-l', type=int, default=10000,
                                help='the length of a text chunk to send to GATE '
                                     '[10000].')
+        subparser.add_argument('--restart-every', '-r', metavar='N', type=int,
+                               default=0,
+                               help='restart the GATE server after every N '
+                                    'sentences to avoid OutOfMemoryException '
+                                    '[0].')
 
     @classmethod
     def instantiate(cls, process_id=1, **kwargs):
