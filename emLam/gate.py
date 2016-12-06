@@ -2,9 +2,14 @@
 """Parses the GATE output."""
 
 from __future__ import absolute_import, division, print_function
-from io import BytesIO
-import re
+from configparser import RawConfigParser  # Should work under 2.7, too
 from future.moves.urllib.parse import urlencode
+from io import BytesIO
+import os
+import re
+from subprocess import Popen
+import sys
+import time
 
 from lxml import etree
 import requests
@@ -12,21 +17,70 @@ import requests
 from emLam import WORD, LEMMA
 
 
-_gate_modules = 'QT,HFSTLemm,ML3-PosLem-hfstcode'  # Opt: 'ML3-SSTok,...
 _anas_p = re.compile(r'{ana=([^}]+), feats=([^}]+])(?:, incorrect=[^,}]+)?, lemma=([^}]+)?}')
 
 
-def parse_with_gate(text, gate_url, anas=False):
-    """Parses a text with a running GATE server."""
-    r = requests.get(
-        'http://{}/process?{}'.format(
-            gate_url, urlencode({'run': _gate_modules,
-                                 'text': text.encode('utf-8')}))
-    )
-    assert r.status_code == 200, \
-        'No error, but unsuccessful request with text {}{}'.format(
-            text[:100], '...' if len(text) > 0 else '')
-    return parse_gate_xml(r.content, anas)
+class Gate(object):
+    """hunlp-GATE interface object."""
+    def __init__(self, gate_props, modules='QT,HFSTLemm,ML3-PosLem-hfstcode',
+                 restart_every=None):
+        """
+        gate_props is the name of the GATE properties file. It is suppoesed to
+        be in the hunlp-GATE directory.
+
+        If restart_every is specified, the GATE server is restarted after that
+        many sentences (counted from the parsed output). This is necessary
+        because it (hunlp-)GATE leaking memory like there is no tomorrow.
+        """
+        # Opt: ML3-SSTok
+        self.gate_props = gate_props
+        self.gate_dir = os.path.dirname(gate_props)
+        self.gate_url = self._gate_url()
+        self.restart_every = restart_every
+        self.modules = modules
+        self.server = None
+        self._start_server()
+
+    def _gate_url(self):
+        """Assembles the GATE url from the properties."""
+        cp = RawConfigParser({'host': 'localhost', 'port': 8000})
+        with open(self.gate_props) as inf:
+            cp.read_string('[GATE]\n' + inf.read())
+        return '{}:{}'.format(cp.get('GATE', 'host'), cp.get('GATE', 'port'))
+
+    def _start_server(self):
+        self.server = Popen(['./gate-server.sh', self.gate_props],
+                            cwd=self.gate_dir)
+        time.sleep(10)
+
+    def _stop_server(self):
+        if self.server:
+            try:
+                requests.post('http://{}/exit'.format(self.gate_url))
+            except:
+                pass
+            self.server.wait()
+        self.server = None
+
+    def parse(self, text, anas=False):
+        """Parses a text with a running GATE server."""
+        if not self.server:
+            self._start_server()
+        try:
+            r = requests.post(
+                'http://{}/process?{}'.format(
+                    self.gate_url, urlencode({'run': self.modules,
+                                              'text': text.encode('utf-8')}))
+            )
+            assert r.status_code == 200, \
+                'No error, but unsuccessful request with text {}{}'.format(
+                    text[:100], '...' if len(text) > 0 else '')
+            return parse_gate_xml(r.content, anas)
+        except Exception as e:
+            # TODO: logging, retries, etc.
+            print('Received error message: {}; stopping server.'.format(e),
+                  file=sys.stderr)
+            self._stop_server()
 
 
 def parse_gate_xml_file(xml_file, get_anas=False):
