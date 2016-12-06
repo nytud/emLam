@@ -67,7 +67,7 @@ class GATEPreprocessing(Preprocessing):
     def instantiate(cls, process_id=1, **kwargs):
         try:
             mod_args = dict(kwargs)
-            mod_args['gate_url'] = kwargs['gate_url'][process_id]
+            mod_args['gate_props'] = kwargs['gate_props'][process_id]
             return super(GATEPreprocessing, cls).instantiate(process_id,
                                                              **mod_args)
         except:
