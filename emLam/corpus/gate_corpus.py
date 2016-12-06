@@ -3,15 +3,15 @@
 
 from __future__ import absolute_import, division, print_function
 
-from emLam.gate import parse_with_gate
+from emLam.gate import Gate
 from emLam.corpus.corpus_base import Preprocessing
 
 
 class GATEPreprocessing(Preprocessing):
     def __init__(self, gate_props, max_length=10000, restart_every=0):
-        self.gate_props = gate_props
         self.max_length = max_length
         self.restart_every = restart_every
+        self.gate = Gate(gate_props, restart_every=restart_every)
 
     def preprocess(self, input_stream, output_stream):
         for chunk, parsed in enumerate(self._parse_with_gate(input_stream)):
@@ -32,10 +32,10 @@ class GATEPreprocessing(Preprocessing):
         for txt in self._read_input(input_stream):
             text += txt
             if len(text) > self.max_length:
-                yield parse_with_gate(text, self.gate_url)
+                yield self.gate.parse(text)
                 text = ''
         if text:
-            yield parse_with_gate(text, self.gate_url)
+            yield self.gate.parse(text)
 
     def _read_input(self, input_stream):
         """A generator that returns a chunk of text at a time."""
