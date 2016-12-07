@@ -74,7 +74,9 @@ class WebcorpusPreprocessing(GATEPreprocessing):
             for member in tf.getmembers():
                 if member.isfile():
                     member_f = tf.extractfile(member.name)
-                    yield io.TextIOWrapper(member_f, encoding='iso-8859-2')
+                    # This should work, but alas, only from Python 3.3
+                    #yield io.TextIOWrapper(member_f, encoding='iso-8859-2')
+                    yield io.TextIOWrapper(io.BytesIO(member_f.read()), encoding='iso-8859-2')
                     yield [u'<s>\n']  # To separate files
                     member_f.close()
 
