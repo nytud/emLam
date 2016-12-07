@@ -15,9 +15,10 @@ from emLam.utils import openall
 class WebcorpusPreprocessing(GATEPreprocessing):
     rename_p = re.compile(r'\.tar(\.gz)$')
 
-    def __init__(self, gate_url, max_length=10000, compressed=True,
-                 max_entities=0.2):
-        super(WebcorpusPreprocessing, self).__init__(gate_url, max_length)
+    def __init__(self, gate_props, max_length=10000, restart_every=0,
+                 compressed=True, max_entities=0.2):
+        super(WebcorpusPreprocessing, self).__init__(
+            gate_props, max_length, restart_every)
         self.compressed = compressed
         self.max_entities = max_entities
         self.html_parser = HTMLParser()

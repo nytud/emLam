@@ -48,12 +48,13 @@ class GATEPreprocessing(Preprocessing):
         subclasses in parser().
         """
         # TODO Use ArgumentParser(parents=)
-        subparser.add_argument('--gate-props', '-G', required=True, action='append',
+        subparser.add_argument('--gate-props', '-G', required=True,
                                help='the hunlp-GATE property file used to '
-                                    'start the server. If '
-                                    'multiple processes are used, at least as '
-                                    'many files should be given as there are '
-                                    'processes.')
+                                    'start the server. If there is a "%" in '
+                                    'the file name, it will be replaced by the '
+                                    'id of the current process. This feature '
+                                    'should be used in a multiprocessing '
+                                    'setting.')
         subparser.add_argument('--max-length', '-l', type=int, default=10000,
                                help='the length of a text chunk to send to GATE '
                                     '[10000].')
@@ -65,11 +66,10 @@ class GATEPreprocessing(Preprocessing):
 
     @classmethod
     def instantiate(cls, process_id=1, **kwargs):
-        try:
             mod_args = dict(kwargs)
-            mod_args['gate_props'] = kwargs['gate_props'][process_id]
+            mod_args['gate_props'] = kwargs['gate_props'].replace('%', str(process_id))
+            if process_id > 1 and mod_args['gate_props'] == kwargs['gate_props']:
+                raise ValueError('At least as many gate servers must be '
+                                 'specified as there are processes.')
             return super(GATEPreprocessing, cls).instantiate(process_id,
                                                              **mod_args)
-        except:
-            raise ValueError('At least as many gate servers must be specified '
-                             'as there are processes.')
