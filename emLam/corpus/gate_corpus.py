@@ -9,9 +9,23 @@ from emLam.corpus.corpus_base import Preprocessing
 
 class GATEPreprocessing(Preprocessing):
     def __init__(self, gate_props, max_length=10000, restart_every=0):
+        self.gate_props = gate_props
         self.max_length = max_length
         self.restart_every = restart_every
-        self.gate = Gate(gate_props, restart_every=restart_every)
+        self.gate = None
+
+    def initialize(self):
+        """
+        Gate is initialized here so that it is only created once, in the
+        processing process, not in the main one.
+        """
+        if not self.gate:
+            self.gate = Gate(self.gate_props, self.restart_every)
+
+    def cleanup(self):
+        if self.gate:
+            del self.gate
+        self.gate = None
 
     def preprocess(self, input_stream, output_stream):
         for chunk, parsed in enumerate(self._parse_with_gate(input_stream)):

@@ -74,12 +74,14 @@ def source_target_file_list(source_dir, target_dir):
 
 
 def process_file(preprocessor, queue):
+    preprocessor.initialize()
     while True:
         try:
             infile, outfile = queue.get_nowait()
             preprocessor.preprocess_files(infile, outfile)
         except Empty:
             break
+    preprocessor.cleanup()
 
 
 def main():

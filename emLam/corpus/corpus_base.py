@@ -9,6 +9,17 @@ from emLam.utils import openall
 
 class Preprocessing(object):
     """Base class for corpus preprocessors."""
+    def initialize(self):
+        """
+        Initializes any resources the preprocessor might use. This should be
+        done here so that it is only run once in a multiprocessing setting.
+        """
+        pass
+
+    def cleanup(self):
+        """The opposite of initialize()."""
+        pass
+
     def preprocess(self, input_stream, output_stream):
         """
         (Pre)processes a corpus read from input_stream, and writes the output

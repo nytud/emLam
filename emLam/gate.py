@@ -4,7 +4,7 @@
 from __future__ import absolute_import, division, print_function
 from configparser import RawConfigParser  # Should work under 2.7, too
 from future.moves.urllib.parse import urlencode
-from io import BytesIO
+from io import open, BytesIO, StringIO
 import os
 import re
 from subprocess import Popen
@@ -22,8 +22,8 @@ _anas_p = re.compile(r'{ana=([^}]+), feats=([^}]+])(?:, incorrect=[^,}]+)?, lemm
 
 class Gate(object):
     """hunlp-GATE interface object."""
-    def __init__(self, gate_props, modules='QT,HFSTLemm,ML3-PosLem-hfstcode',
-                 restart_every=None):
+    def __init__(self, gate_props, restart_every=None,
+                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode'):
         """
         gate_props is the name of the GATE properties file. It is suppoesed to
         be in the hunlp-GATE directory.
@@ -42,45 +42,61 @@ class Gate(object):
         self.parsed = 0
         self._start_server()
 
+    def __del__(self):
+        # See also http://stackoverflow.com/questions/865115/how-do-i-correctly-clean-up-a-python-object
+        # for ideas on how to replace __del__ with something better (?)
+        self._stop_server()
+
     def _gate_url(self):
         """Assembles the GATE url from the properties."""
         cp = RawConfigParser({'host': 'localhost', 'port': 8000})
         with open(self.gate_props) as inf:
-            cp.read_string('[GATE]\n' + inf.read())
+            cp.readfp(StringIO(u'[GATE]\n' + inf.read()))
         return '{}:{}'.format(cp.get('GATE', 'host'), cp.get('GATE', 'port'))
 
     def _start_server(self):
+        print("Starting server {}".format(self.gate_props))
+        # TODO eat the server's output -- in this case, there is no need to wait
         self.server = Popen(['./gate-server.sh', self.gate_props],
                             cwd=self.gate_dir)
         self.parsed = 0
         time.sleep(10)
+        print("Started server {}".format(self.gate_props))
 
     def _stop_server(self):
+        print("Stopping server? {}".format(self.gate_props))
         if self.server:
+            print("Stopping server {}".format(self.gate_props))
             try:
                 requests.post('http://{}/exit'.format(self.gate_url))
             except:
                 pass
             self.server.wait()
+            print("Stopped server {}".format(self.gate_props))
         self.server = None
 
     def parse(self, text, anas=False):
         """Parses a text with a running GATE server."""
         if not self.server:
             self._start_server()
+        with open('/dev/shm/text', 'wt') as outf:
+            print(text, file=outf)
         try:
-            r = requests.post(
-                'http://{}/process?{}'.format(
-                    self.gate_url, urlencode({'run': self.modules,
-                                              'text': text.encode('utf-8')}))
-            )
+            url = 'http://{}/process?{}'.format(
+                self.gate_url, urlencode({'run': self.modules,
+                                          'text': text.encode('utf-8')}))
+            r = requests.post(url)
             assert r.status_code == 200, \
-                'No error, but unsuccessful request with text {}{}'.format(
-                    text[:100], '...' if len(text) > 0 else '')
+                u'No error, but unsuccessful request with text {}{}'.format(
+                    text[:100], u'...' if len(text) > 0 else u'').encode('utf-8')
+            with open('/dev/shm/xml', 'wt') as outf:
+                print(r.content.decode('utf-8'), file=outf)
             parsed = parse_gate_xml(r.content, anas)
             if self.restart_every:
+                print('RESTART?')
                 self.parsed += len(parsed)
                 if self.parsed >= self.restart_every:
+                    print('RESTART!')
                     self._stop_server()
                     self._start_server()
             return parsed
@@ -89,6 +105,7 @@ class Gate(object):
             print('Received error message: {}; stopping server.'.format(e),
                   file=sys.stderr)
             self._stop_server()
+            raise
 
 
 def parse_gate_xml_file(xml_file, get_anas=False):
