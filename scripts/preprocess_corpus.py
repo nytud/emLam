@@ -85,7 +85,7 @@ def process_file(preprocessor, queue):
 def main():
     args = parse_arguments()
     try:
-        preprocessors = [args.corpus.instantiate(p, **args.__dict__)
+        preprocessors = [args.corpus.instantiate(p + 1, **args.__dict__)
                          for p in range(args.processes)]
     except ValueError as ve:
         # TODO logging
