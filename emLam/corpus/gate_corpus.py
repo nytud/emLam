@@ -62,9 +62,10 @@ class GATEPreprocessing(Preprocessing):
         subclasses in parser().
         """
         # TODO Use ArgumentParser(parents=)
+        # Double % because argparse uses 'str % params'-style formatting
         subparser.add_argument('--gate-props', '-G', required=True,
                                help='the hunlp-GATE property file used to '
-                                    'start the server. If there is a "%" in '
+                                    'start the server. If there is a "%%" in '
                                     'the file name, it will be replaced by the '
                                     'id of the current process. This feature '
                                     'should be used in a multiprocessing '

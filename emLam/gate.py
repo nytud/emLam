@@ -79,7 +79,7 @@ class Gate(object):
         """Parses a text with a running GATE server."""
         if not self.server:
             self._start_server()
-        with open('/dev/shm/text', 'wt') as outf:
+        with open('/dev/shm/text-{}'.format(os.getpid()), 'wt') as outf:
             print(text, file=outf)
         try:
             url = 'http://{}/process?{}'.format(
@@ -89,11 +89,10 @@ class Gate(object):
             assert r.status_code == 200, \
                 u'No error, but unsuccessful request with text {}{}'.format(
                     text[:100], u'...' if len(text) > 0 else u'').encode('utf-8')
-            with open('/dev/shm/xml', 'wt') as outf:
+            with open('/dev/shm/xml-{}'.format(os.getpid()), 'wt') as outf:
                 print(r.content.decode('utf-8'), file=outf)
             parsed = parse_gate_xml(r.content, anas)
             if self.restart_every:
-                print('RESTART?')
                 self.parsed += len(parsed)
                 if self.parsed >= self.restart_every:
                     print('RESTART!')
