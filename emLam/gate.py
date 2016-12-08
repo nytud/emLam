@@ -89,8 +89,8 @@ class Gate(object):
             assert r.status_code == 200, \
                 u'No error, but unsuccessful request with text {}{}'.format(
                     text[:100], u'...' if len(text) > 0 else u'').encode('utf-8')
-            with open('/dev/shm/xml-{}'.format(os.getpid()), 'wt') as outf:
-                print(r.content.decode('utf-8'), file=outf)
+            with open('/dev/shm/xml-{}'.format(os.getpid()), 'wb') as outf:
+                print(r.content, file=outf)
             parsed = parse_gate_xml(r.content, anas)
             if self.restart_every:
                 self.parsed += len(parsed)
