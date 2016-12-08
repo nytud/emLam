@@ -4,10 +4,12 @@
 from __future__ import absolute_import, division, print_function
 
 from emLam.gate import Gate
-from emLam.corpus.corpus_base import Preprocessing
+from emLam.corpus.preprocessor_base import Preprocessor
 
 
-class GATEPreprocessing(Preprocessing):
+class GATEPreprocessor(Preprocessor):
+    NAME = 'GATE'
+
     def __init__(self, gate_props, max_length=10000, restart_every=0):
         self.gate_props = gate_props
         self.max_length = max_length
@@ -51,17 +53,9 @@ class GATEPreprocessing(Preprocessing):
         if text:
             yield self.gate.parse(text)
 
-    def _read_input(self, input_stream):
-        """A generator that returns a chunk of text at a time."""
-        raise NotImplementedError('_read_input() must be implemented')
-
     @classmethod
-    def _parser(cls, subparser):
-        """
-        Adds the GATE server parameters to the subparser. Should be called by
-        subclasses in parser().
-        """
-        # TODO Use ArgumentParser(parents=)
+    def child_parser(cls, subparser):
+        """Adds the GATE server parameters to the subparser."""
         # Double % because argparse uses 'str % params'-style formatting
         subparser.add_argument('--gate-props', '-G', required=True,
                                help='the hunlp-GATE property file used to '
@@ -86,5 +80,5 @@ class GATEPreprocessing(Preprocessing):
             if process_id > 1 and mod_args['gate_props'] == kwargs['gate_props']:
                 raise ValueError('At least as many gate servers must be '
                                  'specified as there are processes.')
-            return super(GATEPreprocessing, cls).instantiate(process_id,
-                                                             **mod_args)
+            return super(GATEPreprocessor, cls).instantiate(process_id,
+                                                            **mod_args)

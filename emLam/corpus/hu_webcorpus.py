@@ -8,22 +8,20 @@ import itertools
 import re
 import tarfile
 
-from emLam.corpus.gate_corpus import GATEPreprocessing
+from emLam.corpus import RawCorpus
 from emLam.utils import openall
 
 
-class WebcorpusPreprocessing(GATEPreprocessing):
+class Webcorpus(RawCorpus):
+    NAME = 'hu_webcorpus'
     rename_p = re.compile(r'\.tar(\.gz)$')
 
-    def __init__(self, gate_props, max_length=10000, restart_every=0,
-                 compressed=True, max_entities=0.2):
-        super(WebcorpusPreprocessing, self).__init__(
-            gate_props, max_length, restart_every)
+    def __init__(self, compressed=True, max_entities=0.2):
         self.compressed = compressed
         self.max_entities = max_entities
         self.html_parser = HTMLParser()
 
-    def preprocess_files(self, input_file, output_file):
+    def files_to_streams(self, input_file, output_file):
         """
         Reads input_file according to the corpus format (compressed / not). In
         the former case, modifies the output_file name so that the '.tar' part
@@ -36,7 +34,7 @@ class WebcorpusPreprocessing(GATEPreprocessing):
             input_stream = self.enumerate_file
         with openall(output_file, 'wt', encoding='utf-8') as outf:
             inf = itertools.chain.from_iterable(input_stream(input_file))
-            self.preprocess(inf, outf)
+            return map(self._read_input, inf), outf
 
     def _read_input(self, input_stream):
         """A generator that returns a chunk of text at a time."""
@@ -53,9 +51,8 @@ class WebcorpusPreprocessing(GATEPreprocessing):
                 yield text
 
     @classmethod
-    def parser(cls, subparsers):
+    def child_parser(cls, subparsers):
         parser = subparsers.add_parser('hu_webcorpus', help='Hungarian Webcorpus')
-        super(WebcorpusPreprocessing, cls)._parser(parser)
         parser.add_argument('--uncompressed', '-u', action='store_false',
                             dest='compressed',
                             help='the source directory contains the uncompressed '
@@ -75,7 +72,7 @@ class WebcorpusPreprocessing(GATEPreprocessing):
                 if member.isfile():
                     member_f = tf.extractfile(member.name)
                     # This should work, but alas, only from Python 3.3
-                    #yield io.TextIOWrapper(member_f, encoding='iso-8859-2')
+                    # yield io.TextIOWrapper(member_f, encoding='iso-8859-2')
                     yield io.TextIOWrapper(io.BytesIO(member_f.read()), encoding='iso-8859-2')
                     yield [u'<s>\n']  # To separate files
                     member_f.close()
