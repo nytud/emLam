@@ -8,7 +8,7 @@ import itertools
 import re
 import tarfile
 
-from emLam.corpus import RawCorpus
+from emLam.corpus.corpus_base import RawCorpus
 from emLam.utils import openall
 
 
@@ -34,10 +34,10 @@ class Webcorpus(RawCorpus):
             input_stream = self.enumerate_file
         with openall(output_file, 'wt', encoding='utf-8') as outf:
             inf = itertools.chain.from_iterable(input_stream(input_file))
-            return map(self._read_input, inf), outf
+            yield self.__read_sentence(inf), outf
 
-    def _read_input(self, input_stream):
-        """A generator that returns a chunk of text at a time."""
+    def __read_sentence(self, input_stream):
+        """Returns a sentence a time, cleaned of HTML entities."""
         for line in input_stream:
             if line.startswith(u'<s>'):
                 text = line[3:]
@@ -62,6 +62,7 @@ class Webcorpus(RawCorpus):
         parser.add_argument('--max-entities', '-m', type=float, default=0.2,
                             help='the HTML entity / characters ratio above '
                                  'which a sentence is discarded.')
+        return parser
 
     @staticmethod
     def enumerate_tar(archive):

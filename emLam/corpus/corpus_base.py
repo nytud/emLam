@@ -11,18 +11,18 @@ from emLam.utils import openall
 class Corpus(Component):
     """Base class for corpus objects."""
     def files_to_streams(self, input_file, output_file):
-        """Returns streams for the input and output file."""
+        """Yields streams for the input and output file."""
         with openall(input_file) as inf, openall(output_file, 'wt') as outf:
-            return inf, outf
+            yield inf, outf
 
 
 class GoldCorpus(Corpus):
     """Corpus that require no analysis, only formatting."""
     def files_to_streams(self, input_file, output_file):
         """Converts the input stream into the expected format."""
-        inf, outf = super(GoldCorpus, self).files_to_streams(
-            input_file, output_file)
-        return map(self.convert_input, inf), outf
+        for inf, outf in super(GoldCorpus, self).files_to_streams(input_file,
+                                                                  output_file):
+            yield map(self.convert_input, inf), outf
 
     @classmethod
     def parser(cls, subparsers):
@@ -32,12 +32,13 @@ class GoldCorpus(Corpus):
         instead.
         """
         parser = cls.child_parser(subparsers)
-        parser.setdefault(preprocessor='CopyPreprocessor')
+        parser.set_defaults(preprocessor='CopyPreprocessor')
 
     @classmethod
     def child_parser(cls, subparsers):
         """Takes the role of parser() in descendants."""
-        raise NotImplementedError('child_parser() must be implemented')
+        raise NotImplementedError(
+            'child_parser() must be implemented in class {}'.format(cls.__name__))
 
 
 class RawCorpus(Corpus):
@@ -50,7 +51,7 @@ class RawCorpus(Corpus):
         instead.
         """
         parser = cls.child_parser(subparsers)
-        subparsers = parser.add_subparsers(
+        pp_subparsers = parser.add_subparsers(
             title='Preprocessors',
             description='Lists the preprocessors available. For help on a '
                         'specific one, call the script with the '
@@ -58,9 +59,10 @@ class RawCorpus(Corpus):
             dest='preprocessor', help='the preprocessors available.')
         preprocessors = get_all_preprocessors()
         for _, pp_class in sorted(preprocessors.items()):
-            pp_class.parser(subparsers)
+            pp_class.parser(pp_subparsers)
 
     @classmethod
     def child_parser(cls, subparsers):
         """Takes the role of parser() in descendants."""
-        raise NotImplementedError('child_parser() must be implemented')
+        raise NotImplementedError(
+            'child_parser() must be implemented in class {}'.format(cls.__name__))

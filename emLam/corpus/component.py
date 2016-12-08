@@ -2,6 +2,7 @@
 """An instantiable component. Also has bindings for ArgumentParser."""
 
 from __future__ import absolute_import, division, print_function
+from future.utils import with_metaclass
 import inspect
 
 
@@ -11,11 +12,10 @@ class NamedClass(type):
     http://stackoverflow.com/questions/3203286/how-to-create-a-read-only-class-property-in-python
     """
     @property
-    @classmethod
     def name(cls):
         return getattr(cls, 'NAME', None)
 
-class Component(object, metaclass=NamedClass):
+class Component(with_metaclass(NamedClass, object)):
     """Base class for corpus objects."""
     @classmethod
     def parser(cls, subparsers):
@@ -23,7 +23,8 @@ class Component(object, metaclass=NamedClass):
         This method adds a (n ArgumentParser) subparser to the group specified
         in the argument.
         """
-        raise NotImplementedError('parser() must be implemented')
+        raise NotImplementedError(
+            'parser() must be implemented in class {}'.format(cls.__name__))
 
     @classmethod
     def instantiate(cls, process_id=0, **kwargs):
@@ -35,8 +36,3 @@ class Component(object, metaclass=NamedClass):
         argspec = inspect.getargspec(cls.__init__).args
         component_args = {k: kwargs[k] for k in argspec[1:] if k in kwargs}
         return cls(**component_args)
-
-    @classmethod
-    def name(cls):
-        """The display name of the component."""
-        raise NotImplementedError('name() must be implemented')

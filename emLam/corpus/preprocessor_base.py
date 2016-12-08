@@ -20,7 +20,8 @@ class Preprocessor(Component):
         (Pre)processes a corpus read from input_stream, and writes the output
         to output_stream.
         """
-        raise NotImplementedError('preprocess() must be implemented')
+        raise NotImplementedError(
+            'preprocess() must be implemented in class {}'.format(cls.__name__))
 
     def cleanup(self):
         """The opposite of initialize()."""
@@ -34,3 +35,10 @@ class CopyPreprocessor(Preprocessor):
     def preprocess(self, input_stream, output_stream):
         for line in input_stream:
             print(line, file=output_stream)
+
+    @classmethod
+    def parser(cls, subparsers):
+        """
+        This class should not be added to the list of selectable preprocessors.
+        """
+        pass

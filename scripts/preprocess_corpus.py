@@ -12,7 +12,7 @@ import os
 import os.path as op
 from queue import Empty
 
-from emLam.corpus import get_all_corpora
+from emLam.corpus import get_all_corpora, get_all_preprocessors
 from emLam.utils import run_queued
 
 
@@ -39,6 +39,7 @@ def parse_arguments():
     if args.source_dir == args.target_dir:
         parser.error('Source and target directories must differ.')
     args.corpus = corpora[args.corpus]
+    args.preprocessor = get_all_preprocessors()[args.preprocessor]
 
     return args
 
@@ -73,13 +74,15 @@ def source_target_file_list(source_dir, target_dir):
     return zip(source_files, target_files)
 
 
-def process_file(preprocessor, queue):
+def process_file(corpus_preprocessor, queue):
+    corpus, preprocessor = corpus_preprocessor
     preprocessor.initialize()
     try:
         while True:
             try:
                 infile, outfile = queue.get_nowait()
-                preprocessor.preprocess_files(infile, outfile)
+                for ins, outs in corpus.files_to_streams(infile, outfile):
+                    preprocessor.preprocess(ins, outs)
             except Empty:
                 break
     except Exception as e:
@@ -93,7 +96,9 @@ def process_file(preprocessor, queue):
 def main():
     args = parse_arguments()
     try:
-        preprocessors = [args.corpus.instantiate(p + 1, **args.__dict__)
+        corpora = [args.corpus.instantiate(p + 1, **args.__dict__)
+                   for p in range(args.processes)]
+        preprocessors = [args.preprocessor.instantiate(p + 1, **args.__dict__)
                          for p in range(args.processes)]
     except ValueError as ve:
         # TODO logging
@@ -102,7 +107,8 @@ def main():
 
     source_target_files = source_target_file_list(args.source_dir, args.target_dir)
 
-    run_queued(process_file, preprocessors, args.processes, source_target_files)
+    run_queued(process_file, zip(corpora, preprocessors),
+               args.processes, source_target_files)
 
 
 if __name__ == '__main__':

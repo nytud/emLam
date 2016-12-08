@@ -21,7 +21,7 @@ def get_all_classes(ancestor):
 
     classes = {}
     cdir = op.dirname(op.abspath(__file__))
-    for cfile in os.listdir(cdir):
+    for cfile in filter(lambda f: f.endswith('.py'), os.listdir(cdir)):
         module_name = inspect.getmodulename(op.join(cdir, cfile))
         # TODO This is ugly; use ABC's or metaprogramming, see
         # http://python-3-patterns-idioms-test.readthedocs.io/en/latest/Metaprogramming.html
