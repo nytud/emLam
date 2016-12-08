@@ -75,13 +75,19 @@ def source_target_file_list(source_dir, target_dir):
 
 def process_file(preprocessor, queue):
     preprocessor.initialize()
-    while True:
-        try:
-            infile, outfile = queue.get_nowait()
-            preprocessor.preprocess_files(infile, outfile)
-        except Empty:
-            break
-    preprocessor.cleanup()
+    try:
+        while True:
+            try:
+                infile, outfile = queue.get_nowait()
+                preprocessor.preprocess_files(infile, outfile)
+            except Empty:
+                break
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise
+    finally:
+        preprocessor.cleanup()
 
 
 def main():
