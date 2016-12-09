@@ -22,14 +22,34 @@ class QunTokenErrors(Preprocessor):
 
     def preprocess(self, input_stream, output_stream):
         for text in self.__read_chunk(input_stream):
-            sentences = text.split('\n')
+            sentences = text.strip().split('\n')
             if not self.__run_quntoken(sentences):
+                self.__find_culprits(sentences, output_stream)
 
+    def __find_culprits(self, sentences, output_stream):
+        k = len(sentences) // 2
+        found = []
+        if not self.__run_quntoken(sentences[:k]):
+            found.append(sentences[:k])
+        if not self.__run_quntoken(sentences[k:]):
+            found.append(sentences[k:])
+        if found:
+            for culprit in found:
+                if len(culprit) == 1:
+                    print(culprit[0], file=output_stream)
+                else:
+                    self.__find_culprits(culprit, output_stream)
+        else:
+            # Since we only get here if there is a problem, but neither half
+            # is at blame, we can conclude that the error spans just those two
+            # lines we split at. I am not sure such errors are possible;
+            # just to be on the safe side...
+            print(u''.join(found[k-1:k+1]), file=output_stream)
 
     def __run_quntoken(self, sentences):
         with NamedTemporaryFile(delete=False, dir=self.tmp_dir) as infile:
             for sentence in sentences:
-                print(sentence, file=infile)
+                print(sentence.encode('utf-8'), file=infile)
         p = Popen([self.quntoken, infile.name], stdout=PIPE, stderr=PIPE)
         _, _ = p.communicate()
         os.unlink(infile.name)
