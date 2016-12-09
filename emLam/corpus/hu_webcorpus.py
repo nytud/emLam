@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preprocessing steps for the Szeged corpus."""
+"""Corpus reader for the Hungarian Webcorpus."""
 
 from __future__ import absolute_import, division, print_function
 from html.parser import HTMLParser  # Needs future, too
