@@ -2,13 +2,7 @@
 """Corpus reader for the MNSZ2."""
 
 from __future__ import absolute_import, division, print_function
-#from builtins import str
-from html.parser import HTMLParser  # Needs future, too
-import io
-import itertools
-import re
 import sys
-import tarfile
 
 from lxml import etree
 
@@ -33,37 +27,55 @@ class MNSZ2Corpus(RawCorpus):
     def __extract_text(self, input_stream):
         """Extracts the text from the stupid xml."""
         recording, poem, in_p = False, False, False
+        texts = []
         for event, node in etree.iterparse(input_stream, huge_tree=True,
                                            events=['start', 'end']):
-            if 'event' == 'start':
+            if event == 'start':
                 if node.tag == 'body':
                     recording = True
-                elif node.tag == 'poem':
+                elif self.__is_poem(node):
                     poem = True
-                elif node.tag == 'div' and node.get('type') == 'poem':
-                    poem = True
-                elif node.tag == 'p' or node.tag == 'note':
+                elif self.__is_content_node(node) and recording and not poem:
                     in_p = node.get('lang') != 'foreign' or self.foreign
             else:
                 if node.tag == 'body':
                     recording = False
-                elif node.tag == 'poem':
+                elif self.__is_poem(node):
                     poem = False
-                elif node.tag == 'div' and node.get('type') == 'poem':
-                    poem = False
-                elif node.tag == 'head' and node.get('type') == 'attached':
-                    pass  # TODO add text
-                    yield self.__to_unicode(node.text)
-                elif node.tag == 'p' or node.tag == 'note':
-                    pass  # TODO add text
-                    yield self.__to_unicode(node.text)
+                elif self.__is_content_node(node) and recording and not poem:
+                    texts.append(self.__clean_text(node.text))
+                    if node.text:
+                        yield u' '.join(texts)
+                        texts = []
                     in_p = False
+                elif in_p:
+                    texts.append(self.__clean_text(node.text))
+                    texts.append(self.__clean_text(node.tail))
 
     @staticmethod
-    def __to_unicode(s):
-        print(type(s), binary_type)
-        return s.decode('iso-8859-2') if type(s) == binary_type else s
+    def __is_poem(node):
+        if node.tag == 'poem':
+            return True
+        elif node.tag == 'div' and node.get('type') == 'poem':
+            return True
+        return False
 
+    @staticmethod
+    def __is_content_node(node):
+        if node.tag == 'p' or node.tag == 'note':
+            return True
+        elif node.tag == 'head' and node.get('type') == 'attached':
+            return True
+        return False
+
+    @staticmethod
+    def __clean_text(s):
+        if not s:
+            return u''
+        else:
+            s = s.decode('iso-8859-2') if type(s) == binary_type else s
+            s = s.replace('\n', ' ')
+            return s.strip()
 
     @classmethod
     def child_parser(cls, subparsers):
