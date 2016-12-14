@@ -49,9 +49,9 @@ setup(name='emLam',
       ],
       keywords='language modeling Hungarian RNN',
       packages=find_packages(exclude=['scripts']),
+      # Tensorflow and numpy can be installed from requirement files, as they
+      # are only required if the nn module / scripts are used.
       install_requires=[
-          # To do the work
-          'tensorflow>=0.12', 'numpy',
           # Python 2/3 compatibility
           'future', 'six',
           # Communication with GATE; an earlier lxml version is broken, but
