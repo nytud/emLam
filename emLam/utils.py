@@ -130,3 +130,16 @@ def run_queued(fn, params, processes=1, queued_params=None):
         p.close()
         p.join()
         return ret
+
+
+class AttrDict(dict):
+    """Makes our life easier."""
+    def __getattr__(self, key):
+        if key not in self:
+            raise AttributeError('key {} missing'.format(key))
+        return self[key]
+
+    def __setattr__(self, key, value):
+        if key not in self:
+            raise AttributeError('key {} missing'.format(key))
+        self[key] = value
