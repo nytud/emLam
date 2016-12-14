@@ -11,7 +11,7 @@ def readme():
     with open('README.md') as f:
         return f.read()
 
-setup(name='emLam',
+setup(name='emlam',
       version='0.5',
       description='Scripts and tools for Hungarian Language Modeling',
       long_description=readme(),
