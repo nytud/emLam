@@ -1,2 +1,3 @@
+--pre
 numpy>=1.11.0
 tensorflow-gpu>=0.11
