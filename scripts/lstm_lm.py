@@ -267,7 +267,7 @@ def main():
         with tf.name_scope('Global_ops'):
             saver = tf.train.Saver(
                 name='saver', max_to_keep=max(10, args.early_stopping + 1))
-            init = tf.initialize_all_variables()
+            init = tf.global_variables_initializer()
 
     # TODO: look into Supervisor
     # The training itself
