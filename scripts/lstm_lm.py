@@ -274,7 +274,7 @@ def main():
     with tf.Session(graph=graph, config=get_sconfig(args.gpu_memory)) as sess:
         save_dir = os.path.join('saves', args.model_name)
         boards_dir = os.path.join('boards', args.model_name)
-        writer = tf.train.SummaryWriter(boards_dir, graph=graph)
+        writer = tf.summary.FileWriter(boards_dir, graph=graph)
         last_epoch = init_or_load_session(sess, save_dir, saver, init)
         global_step = 0
         if not args.test_only:
