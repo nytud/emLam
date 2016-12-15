@@ -1,5 +1,5 @@
 """Generic LSTM language model."""
-from rnn import get_rnn
+from emLam.nn.rnn import get_rnn
 
 import tensorflow as tf
 

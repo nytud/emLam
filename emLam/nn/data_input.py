@@ -23,7 +23,7 @@ class DataLoader(object):
         self.data_type = data_type
         self.vocab = self._read_vocab(vocab_file) if vocab_file else None
         # Subclass-specific to avoid copying all the arguments another N times
-        self.__init()
+        self.real_init()
 
     def _read_vocab(self, vocab_file):
         with openall(vocab_file) as inf:
@@ -33,14 +33,14 @@ class DataLoader(object):
     def __iter__(self):
         raise NotImplementedError('__iter__ must be implemented.')
 
-    def __init(self):
+    def real_init(self):
         """The subclass must initialize epoch_size and the data setup here."""
-        raise NotImplementedError('__init must be implemented.')
+        raise NotImplementedError('real_init must be implemented.')
 
 
 class TxtDiskLoader(DataLoader):
     """Reads the text-files-per-batch format."""
-    def __init(self):
+    def real_init(self):
         if not self.vocab:
             raise ValueError('TxtDiskLoader requires a vocabulary file.')
         self.queues = self._setup_queues(self.data_batches)
@@ -96,7 +96,7 @@ class TxtDiskLoader(DataLoader):
 
 class IntMemLoader(DataLoader):
     """Reads the int-array-in-memory format."""
-    def __init(self):
+    def real_init(self):
         self.epoch_size = (self.data_len // self.batch_size - 1) // self.num_steps
         cropped_len = self.data_len // self.batch_size * self.batch_size
         self.data = np.load(self.header + '.npz')['data'][:cropped_len].reshape(

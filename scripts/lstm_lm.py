@@ -64,7 +64,7 @@ def parse_arguments():
                         help='whether to compute an embedding as well [yes].')
     parser.add_argument('--epochs', '-e', type=int, default=20,
                         help='the default number of epochs [20].')
-    parser.add_argument('--epoch-size', '-s', type=int, default=0,
+    parser.add_argument('--epoch-size', type=int, default=0,
                         help='the default epoch size. The number of batches '
                              'processed in an epoch. If 0 (the default), '
                              'the whole data is processed in an apoch.')
