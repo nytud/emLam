@@ -6,18 +6,28 @@ import os.path as op
 
 
 def get_all_corpora():
+    from emLam.corpus.corpus_base import Corpus
+    return get_all_classes(Corpus)
+
+
+def get_all_preprocessors():
+    from emLam.corpus.preprocessor_base import Preprocessor
+    return get_all_classes(Preprocessor)
+
+
+def get_all_classes(ancestor):
     def is_mod_class(mod, cls):
         return inspect.isclass(cls) and inspect.getmodule(cls) == mod
 
-    corpora = {}
-
+    classes = {}
     cdir = op.dirname(op.abspath(__file__))
-    for cfile in os.listdir(cdir):
+    for cfile in filter(lambda f: f.endswith('.py'), os.listdir(cdir)):
         module_name = inspect.getmodulename(op.join(cdir, cfile))
         # TODO This is ugly; use ABC's or metaprogramming, see
         # http://python-3-patterns-idioms-test.readthedocs.io/en/latest/Metaprogramming.html
-        if module_name and module_name != 'corpus_base' and module_name != 'gate_corpus':
-            module = importlib.import_module(__name__ + '.' + module_name)
-            for cls in inspect.getmembers(module, partial(is_mod_class, module)):
-                corpora[module_name] = cls[1]
-    return corpora
+        module = importlib.import_module(__name__ + '.' + module_name)
+        for _, cls in inspect.getmembers(module, partial(is_mod_class, module)):
+            # Only take 'named' classes, i.e. leaves in the class tree
+            if issubclass(cls, ancestor) and cls.name:
+                classes[cls.name] = cls
+    return classes

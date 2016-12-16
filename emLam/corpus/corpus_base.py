@@ -1,52 +1,68 @@
 #!/usr/bin/env python3
-"""Base class for corpus preprocessors."""
+"""Base class for corpus class."""
 
 from __future__ import absolute_import, division, print_function
-import inspect
 
+from emLam.corpus import get_all_preprocessors
+from emLam.corpus.component import Component
 from emLam.utils import openall
 
 
-class Preprocessing(object):
-    """Base class for corpus preprocessors."""
-    def initialize(self):
-        """
-        Initializes any resources the preprocessor might use. This should be
-        done here so that it is only run once in a multiprocessing setting.
-        """
-        pass
-
-    def cleanup(self):
-        """The opposite of initialize()."""
-        pass
-
-    def preprocess(self, input_stream, output_stream):
-        """
-        (Pre)processes a corpus read from input_stream, and writes the output
-        to output_stream.
-        """
-        raise NotImplementedError('preprocess() must be implemented')
-
-    def preprocess_files(self, input_file, output_file):
-        """Same as preprocess(), but on files."""
+class Corpus(Component):
+    """Base class for corpus objects."""
+    def files_to_streams(self, input_file, output_file):
+        """Yields streams for the input and output file."""
         with openall(input_file) as inf, openall(output_file, 'wt') as outf:
-            return self.preprocess(inf, outf)
+            yield inf, outf
+
+
+class GoldCorpus(Corpus):
+    """Corpus that require no analysis, only formatting."""
+    def files_to_streams(self, input_file, output_file):
+        """Converts the input stream into the expected format."""
+        for inf, outf in super(GoldCorpus, self).files_to_streams(input_file,
+                                                                  output_file):
+            yield map(self.convert_input, inf), outf
 
     @classmethod
     def parser(cls, subparsers):
         """
-        This method adds a (n ArgumentParser) subparser to the group specified
-        in the argument.
+        Adds CopyPreprocessor as the preprocessor. Descendants should not
+        re-implement this method, but add their parameters in child_parser()
+        instead.
         """
-        raise NotImplementedError('parser() must be implemented')
+        parser = cls.child_parser(subparsers)
+        parser.set_defaults(preprocessor='CopyPreprocessor')
 
     @classmethod
-    def instantiate(cls, process_id=0, **kwargs):
+    def child_parser(cls, subparsers):
+        """Takes the role of parser() in descendants."""
+        raise NotImplementedError(
+            'child_parser() must be implemented in class {}'.format(cls.__name__))
+
+
+class RawCorpus(Corpus):
+    """Corpus that require analysis. It adds a subparser for preprocessors."""
+    @classmethod
+    def parser(cls, subparsers):
         """
-        Instantiates the class from keyword arguments. The process_id (not a
-        real pid, but an ordinal starting from 0) is there so that preprocessors
-        that use external resources can "plan" accordingly.
+        Adds a subparser for preprocessor selection. Descendants should not
+        re-implement this method, but add their parameters in child_parser()
+        instead.
         """
-        argspec = inspect.getargspec(cls.__init__).args
-        corpus_args = {k: kwargs[k] for k in argspec[1:] if k in kwargs}
-        return cls(**corpus_args)
+        parser = cls.child_parser(subparsers)
+        pp_subparsers = parser.add_subparsers(
+            title='Preprocessors',
+            description='Lists the preprocessors available. For help on a '
+                        'specific one, call the script with the '
+                        '`<preprocessor> -h` arguments.',
+            dest='preprocessor', help='the preprocessors available.')
+        preprocessors = get_all_preprocessors()
+        for _, pp_class in sorted(preprocessors.items()):
+            pp_class.parser(pp_subparsers)
+
+    @classmethod
+    def child_parser(cls, subparsers):
+        """Takes the role of parser() in descendants."""
+        raise NotImplementedError(
+            'child_parser() must be implemented in class {}'.format(cls.__name__))
