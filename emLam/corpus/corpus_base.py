@@ -22,7 +22,13 @@ class GoldCorpus(Corpus):
         """Converts the input stream into the expected format."""
         for inf, outf in super(GoldCorpus, self).files_to_streams(input_file,
                                                                   output_file):
-            yield map(self.convert_input, inf), outf
+            yield self.convert_input(inf), outf
+
+    def convert_input(self, input_stream):
+        """Converts the input to tsv format."""
+        raise NotImplementedError(
+            'convert_input() must be implemented in class {}'.format(
+                self.__class__.__name__))
 
     @classmethod
     def parser(cls, subparsers):
@@ -51,6 +57,10 @@ class RawCorpus(Corpus):
         instead.
         """
         parser = cls.child_parser(subparsers)
+        parser.add_argument('--max-lines', type=int,
+                            help='if specified, the output will be written to '
+                                 'a series of files, each (save the last one) '
+                                 'approximately this long')
         pp_subparsers = parser.add_subparsers(
             title='Preprocessors',
             description='Lists the preprocessors available. For help on a '

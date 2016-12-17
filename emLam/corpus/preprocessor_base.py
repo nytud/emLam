@@ -38,7 +38,5 @@ class CopyPreprocessor(Preprocessor):
 
     @classmethod
     def parser(cls, subparsers):
-        """
-        This class should not be added to the list of selectable preprocessors.
-        """
-        pass
+        parser = subparsers.add_parser(
+            cls.NAME, help='Copies input lines to the output.')

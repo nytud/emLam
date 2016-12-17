@@ -14,7 +14,7 @@ from queue import Queue
 import re
 import sys
 
-__allname_p = re.compile(r'^(.+?)(?:\.gz|\.bz2)?$')
+__allname_p = re.compile(r'^(.+?)(\.gz|\.bz2)?$')
 
 if sys.version_info.major == 3:
     def openall(
@@ -72,10 +72,10 @@ else:
 
 def allname(fn):
     """
-    Returns the "base" name of a file, removing the extensions openall()
-    handles.
+    Returns the "base" name and the extension of a file separately, Only the
+    extensions openall() handles are considered.
     """
-    return __allname_p.match(fn).group(1)
+    return __allname_p.match(fn).groups()
 
 
 def source_target_file_list(source_dir, target_dir):
