@@ -70,10 +70,3 @@ class MultiFileWriter(TextIOBase):
 
     def writable(self):
         return True
-
-
-def get_output_stream(file_name, max_lines=None, wait_for_empty=True):
-    if max_lines:
-        return MultiFileWriter(file_name, max_lines, wait_for_empty)
-    else:
-        return openall(file_name, 'wt')
