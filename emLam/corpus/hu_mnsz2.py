@@ -2,6 +2,7 @@
 """Corpus reader for the MNSZ2."""
 
 from __future__ import absolute_import, division, print_function
+from six.moves.html_parser import HTMLParser
 import sys
 
 from lxml import etree
@@ -15,6 +16,7 @@ binary_type = str if sys.version_info < (3,) else bytes
 
 class MNSZ2Corpus(RawCorpus):
     NAME = 'hu_mnsz2'
+    html_parser = HTMLParser()
 
     def __init__(self, foreign=False):
         self.foreign = foreign
@@ -29,7 +31,8 @@ class MNSZ2Corpus(RawCorpus):
         recording, poem, in_p = False, False, False
         texts = []
         for event, node in etree.iterparse(input_stream, huge_tree=True,
-                                           events=['start', 'end']):
+                                           events=['start', 'end'],
+                                           resolve_entities=False):
             if event == 'start':
                 if node.tag == 'body':
                     recording = True
@@ -74,6 +77,7 @@ class MNSZ2Corpus(RawCorpus):
             return u''
         else:
             s = s.decode('iso-8859-2') if type(s) == binary_type else s
+            s = MNSZ2Corpus.html_parser.unescape(s)
             s = s.replace('\n', ' ')
             return s.strip()
 
