@@ -2,6 +2,7 @@
 """Corpus reader for the MNSZ2."""
 
 from __future__ import absolute_import, division, print_function
+import re
 from six.moves.html_parser import HTMLParser
 import sys
 
@@ -17,6 +18,8 @@ binary_type = str if sys.version_info < (3,) else bytes
 class MNSZ2Corpus(RawCorpus):
     NAME = 'hu_mnsz2'
     html_parser = HTMLParser()
+    spaces = re.compile(r'[ \t]+')
+    empty_lines = re.compile(r'\n[ \t]+\n')
 
     def __init__(self, foreign=False):
         self.foreign = foreign
@@ -49,12 +52,23 @@ class MNSZ2Corpus(RawCorpus):
                     if node.text:
                         texts = [self.__clean_text(node.text)] + texts
                     if texts:
-                        yield u' '.join(texts) + u'\n'
+                        #yield u' '.join(texts) + u'\n'
+                        yield self.__join(texts)
                         texts = []
                     in_p = False
                 elif in_p:
                     texts.append(self.__clean_text(node.text))
                     texts.append(self.__clean_text(node.tail))
+
+    @staticmethod
+    def __join(texts):
+        """
+        Keeps the newlines in the text, so that quntoken doesn't choke on the
+        100k character-long lines.
+        """
+        text = MNSZ2Corpus.empty_lines.sub(u'\n', u' '.join(texts))
+        text = MNSZ2Corpus.spaces.sub(u' ', text)
+        return text
 
     @staticmethod
     def __is_poem(node):
@@ -79,7 +93,7 @@ class MNSZ2Corpus(RawCorpus):
         else:
             s = s.decode('iso-8859-2') if type(s) == binary_type else s
             s = MNSZ2Corpus.html_parser.unescape(s)
-            s = s.replace('\n', ' ')
+            #s = s.replace('\n', ' ')
             return s.strip()
 
     @classmethod
