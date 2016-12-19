@@ -46,9 +46,10 @@ class MNSZ2Corpus(RawCorpus):
                 elif self.__is_poem(node):
                     poem = False
                 elif self.__is_content_node(node) and recording and not poem:
-                    texts.append(self.__clean_text(node.text))
                     if node.text:
-                        yield u' '.join(texts)
+                        texts = [self.__clean_text(node.text)] + texts
+                    if texts:
+                        yield u' '.join(texts) + u'\n'
                         texts = []
                     in_p = False
                 elif in_p:
