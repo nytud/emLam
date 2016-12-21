@@ -14,7 +14,7 @@ class QunTokenErrors(Preprocessor):
     """Preprocessor that looks for input that segfaults QunToken."""
     NAME = 'qt_errors'
 
-    def __init__(self, quntoken, max_length=10000, tmp_dir='/run/shm/'):
+    def __init__(self, quntoken, max_length=50000, tmp_dir='/run/shm/'):
         self.quntoken = quntoken
         self.max_length = max_length
         self.tmp_dir = tmp_dir
