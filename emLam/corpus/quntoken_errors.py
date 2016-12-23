@@ -2,6 +2,7 @@
 """Preprocessor that looks for input that segfaults QunToken."""
 
 from __future__ import absolute_import, division, print_function
+import collections
 import os
 from tempfile import NamedTemporaryFile
 from subprocess import Popen, PIPE
@@ -13,7 +14,7 @@ class QunTokenErrors(Preprocessor):
     """Preprocessor that looks for input that segfaults QunToken."""
     NAME = 'qt_errors'
 
-    def __init__(self, quntoken, max_length=10000, tmp_dir='/run/shm/'):
+    def __init__(self, quntoken, max_length=50000, tmp_dir='/run/shm/'):
         self.quntoken = quntoken
         self.max_length = max_length
         self.tmp_dir = tmp_dir
@@ -24,9 +25,12 @@ class QunTokenErrors(Preprocessor):
         for text in self.__read_chunk(input_stream):
             sentences = text.strip().split('\n')
             if not self.__run_quntoken(sentences):
-                self.__find_culprits(sentences, output_stream)
+                queue = collections.deque([sentences])
+                while queue:
+                    self.__find_culprits(queue, output_stream)
 
-    def __find_culprits(self, sentences, output_stream):
+    def __find_culprits(self, queue, output_stream):
+        sentences = queue.popleft()
         k = len(sentences) // 2
         found = []
         if not self.__run_quntoken(sentences[:k]):
@@ -37,16 +41,18 @@ class QunTokenErrors(Preprocessor):
             for culprit in found:
                 if len(culprit) == 1:
                     print(culprit[0], file=output_stream)
-                else:
-                    self.__find_culprits(culprit, output_stream)
+                elif len(culprit) > 0:
+                    queue.append(culprit)
         else:
             # Since we only get here if there is a problem, but neither half
             # is at blame, we can conclude that the error spans just those two
             # lines we split at. I am not sure such errors are possible;
             # just to be on the safe side...
-            print(u''.join(found[k-1:k+1]), file=output_stream)
+            print(u' '.join(found[k-1:k+1]), file=output_stream)
 
     def __run_quntoken(self, sentences):
+        if len(sentences) == 0:
+            return True
         with NamedTemporaryFile(delete=False, dir=self.tmp_dir) as infile:
             for sentence in sentences:
                 print(sentence.encode('utf-8'), file=infile)

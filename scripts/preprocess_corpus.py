@@ -81,10 +81,16 @@ def process_file(corpus_preprocessor, queue):
         while True:
             try:
                 infile, outfile = queue.get_nowait()
+                print("Started", infile)
                 for ins, outs in corpus.files_to_streams(infile, outfile):
                     preprocessor.preprocess(ins, outs)
+                print("Done", infile)
             except Empty:
                 break
+            except:
+                print('Exception in file {} in process {}:'.format(
+                    infile, os.getpid()))
+                raise
     except Exception as e:
         import traceback
         print(traceback.format_exc())
