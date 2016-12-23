@@ -2,6 +2,7 @@
 """Parses the GATE output."""
 
 from __future__ import absolute_import, division, print_function
+from builtins import range
 from configparser import RawConfigParser  # Should work under 2.7, too
 from future.moves.urllib.parse import urlencode
 from io import open, BytesIO, StringIO
@@ -18,6 +19,10 @@ from emLam import WORD, LEMMA
 
 
 _anas_p = re.compile(r'{ana=([^}]+), feats=([^}]+])(?:, incorrect=[^,}]+)?, lemma=([^}]+)?}')
+
+
+class GateError(Exception):
+    pass
 
 
 class Gate(object):
@@ -40,12 +45,12 @@ class Gate(object):
         self.modules = modules
         self.server = None
         self.parsed = 0
-        self._start_server()
+        self.__start_server()
 
     def __del__(self):
         # See also http://stackoverflow.com/questions/865115/how-do-i-correctly-clean-up-a-python-object
         # for ideas on how to replace __del__ with something better (?)
-        self._stop_server()
+        self.__stop_server()
 
     def _gate_url(self):
         """Assembles the GATE url from the properties."""
@@ -54,7 +59,7 @@ class Gate(object):
             cp.readfp(StringIO(u'[GATE]\n' + inf.read()))
         return '{}:{}'.format(cp.get('GATE', 'host'), cp.get('GATE', 'port'))
 
-    def _start_server(self):
+    def __start_server(self):
         print("Starting server {}".format(self.gate_props))
         # TODO eat the server's output -- in this case, there is no need to wait
         self.server = Popen(['./gate-server.sh', self.gate_props],
@@ -63,7 +68,7 @@ class Gate(object):
         time.sleep(10)
         print("Started server {}".format(self.gate_props))
 
-    def _stop_server(self):
+    def __stop_server(self):
         print("Stopping server? {}".format(self.gate_props))
         if self.server:
             print("Stopping server {}".format(self.gate_props))
@@ -75,36 +80,59 @@ class Gate(object):
             print("Stopped server {}".format(self.gate_props))
         self.server = None
 
+    def __restart_server(self):
+        print('RESTART!')
+        self.__stop_server()
+        self.__start_server()
+
+
     def parse(self, text, anas=False):
         """Parses a text with a running GATE server."""
         if not self.server:
-            self._start_server()
+            self.__start_server()
         with open('/dev/shm/text-{}'.format(os.getpid()), 'wt') as outf:
             print(text, file=outf)
+
+        url = 'http://{}/process?{}'.format(
+            self.gate_url, urlencode({'run': self.modules,
+                                      'text': text.encode('utf-8')}))
         try:
-            url = 'http://{}/process?{}'.format(
-                self.gate_url, urlencode({'run': self.modules,
-                                          'text': text.encode('utf-8')}))
-            r = requests.post(url)
-            assert r.status_code == 200, \
-                u'No error, but unsuccessful request with text {}{}'.format(
-                    text[:100], u'...' if len(text) > 0 else u'').encode('utf-8')
-            with open('/dev/shm/xml-{}'.format(os.getpid()), 'wb') as outf:
-                print(r.content, file=outf)
-            parsed = parse_gate_xml(r.content, anas)
-            if self.restart_every:
-                self.parsed += len(parsed)
-                if self.parsed >= self.restart_every:
-                    print('RESTART!')
-                    self._stop_server()
-                    self._start_server()
-            return parsed
-        except Exception as e:
-            # TODO: logging, retries, etc.
-            print('Received error message: {}; stopping server.'.format(e),
-                  file=sys.stderr)
-            self._stop_server()
+            reply = self.__send_request(url)
+            if reply:
+                with open('/dev/shm/xml-{}'.format(os.getpid()), 'wb') as outf:
+                    print(reply, file=outf)
+                parsed = parse_gate_xml(reply, anas)
+                if self.restart_every:
+                    self.parsed += len(parsed)
+                    if self.parsed >= self.restart_every:
+                        self.__restart_server()
+                return parsed
+        except GateError as ge:
+            self.__stop_server()
             raise
+        except:
+            self.__stop_server()
+            raise
+
+
+    def __send_request(self, url):
+        for tries in range(3):
+            try:
+                r = requests.post(url)
+                if r.status_code != 200:
+                    print(u'Server {} returned an illegal status code {}'.format(
+                        self.gate_url, r.status_code))
+                    r = None
+            except Exception as e:
+                print(u'Exception {} while trying to access server {}'.format(
+                    e, self.gate_url))
+                r = None
+            if not r:
+                self.__restart_server()
+            if r:
+                return r.content
+        else:
+            raise GateError(u'Number of tries exceeded with url {}'.format(url))
 
 
 def parse_gate_xml_file(xml_file, get_anas=False):

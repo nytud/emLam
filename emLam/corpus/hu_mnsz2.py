@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
+# vim: set fileencoding=utf-8 :
+
 """Corpus reader for the MNSZ2."""
 
 from __future__ import absolute_import, division, print_function
+import os
+import re
+from six.moves.html_parser import HTMLParser
 import sys
 
 from lxml import etree
@@ -15,21 +20,33 @@ binary_type = str if sys.version_info < (3,) else bytes
 
 class MNSZ2Corpus(RawCorpus):
     NAME = 'hu_mnsz2'
+    html_parser = HTMLParser()
+    spaces = re.compile(r'[ \t]+')
+    empty_lines = re.compile(r'\n[ \t]+\n')
+    word_per_line = re.compile(r'off[/\\]jrc')
+    # Maximum length of a paragraph (longer P's break QunToken)
+    max_p_length = 60000
+    eos = re.compile(ur'[a-záéíóöőúüű]{3,}[.!?]+')
 
     def __init__(self, foreign=False):
         self.foreign = foreign
 
     def files_to_streams(self, input_file, output_file):
+        if os.path.basename(input_file) == 'off_hu_jrc.xml':
+            extractor = self.__extract_word_per_line
+        else: 
+            extractor = self.__extract_text
         with openall(input_file, 'rb') as inf:
             with openall(output_file, 'wt', encoding='utf-8') as outf:
-                yield self.__extract_text(inf), outf
+                yield extractor(inf), outf
 
     def __extract_text(self, input_stream):
         """Extracts the text from the stupid xml."""
         recording, poem, in_p = False, False, False
         texts = []
         for event, node in etree.iterparse(input_stream, huge_tree=True,
-                                           events=['start', 'end']):
+                                           events=['start', 'end'],
+                                           resolve_entities=False):
             if event == 'start':
                 if node.tag == 'body':
                     recording = True
@@ -42,15 +59,79 @@ class MNSZ2Corpus(RawCorpus):
                     recording = False
                 elif self.__is_poem(node):
                     poem = False
-                elif self.__is_content_node(node) and recording and not poem:
-                    texts.append(self.__clean_text(node.text))
-                    if node.text:
-                        yield u' '.join(texts)
-                        texts = []
-                    in_p = False
-                elif in_p:
-                    texts.append(self.__clean_text(node.text))
-                    texts.append(self.__clean_text(node.tail))
+                if in_p:
+                    if self.__is_content_node(node):
+                        if node.text:
+                            texts = [self.__clean_text(node.text)] + texts
+                        if texts:
+                            # LOL, __join() returns a list :D But see below
+                            chunks = self.__split_for_qt(self.__join(texts))
+                            for chunk in chunks:
+                                yield chunk
+                                #print(chunk.encode('utf-8'))
+                            texts = []
+                        in_p = False
+                    else:
+                        texts.append(self.__clean_text(node.text))
+                        texts.append(self.__clean_text(node.tail))
+
+    def __extract_word_per_line(self, input_stream):
+        """Extracts the text from the even more stupid xml."""
+        recording, in_p = False, False
+        texts = []
+        for event, node in etree.iterparse(input_stream, huge_tree=True,
+                                           events=['start', 'end'],
+                                           resolve_entities=False):
+            if event == 'start':
+                if node.tag == 'div':
+                    texts = []
+            else:
+                if node.tag == 'p':
+                    texts += self.__clean_text(node.text).split()
+                elif node.tag == 'div':
+                    #print(u' '.join(texts).encode('utf-8') + '\n')
+                    for chunk in self.__split_for_qt(u' '.join(texts)):
+                        yield chunk
+                        #print(chunk.encode('utf-8')[:-1])
+
+    @staticmethod
+    def __split_for_qt(text, sep='\n\n'):
+        """
+        This function also splits the output into chunks small enough for
+        QunToken to be able to process along sentence boundaries (best effort).
+        Any chunk longer than this threshold (such as those stupid "high-lit"
+        books where the author thinks it is a good idea to write a chapter /
+        the whole book as one very long sentence) is discarded.
+        """
+        if len(text) > MNSZ2Corpus.max_p_length:
+            chunks, last_pos = [], 0
+            while text:
+                for m in MNSZ2Corpus.eos.finditer(text):
+                    if m.end() > MNSZ2Corpus.max_p_length:
+                        if last_pos != 0:
+                            chunks.append(text[:last_pos] + sep)
+                            text = text[last_pos:]
+                        else:
+                            text = text[m.end():]
+                        break
+                    else:
+                        last_pos = m.end()
+                else:
+                    chunks.append(text + sep)
+                    text = None
+            return chunks
+        else:
+            return [text + sep]
+
+    @staticmethod
+    def __join(texts):
+        """
+        Keeps the newlines in the text, so that quntoken doesn't choke on the
+        100k character-long lines.
+        """
+        text = MNSZ2Corpus.empty_lines.sub(u'\n', u' '.join(texts))
+        # Empty line between paragraphs to prevent QunToken from choking
+        return MNSZ2Corpus.spaces.sub(u' ', text)
 
     @staticmethod
     def __is_poem(node):
@@ -74,7 +155,8 @@ class MNSZ2Corpus(RawCorpus):
             return u''
         else:
             s = s.decode('iso-8859-2') if type(s) == binary_type else s
-            s = s.replace('\n', ' ')
+            s = MNSZ2Corpus.html_parser.unescape(s)
+            #s = s.replace('\n', ' ')
             return s.strip()
 
     @classmethod
