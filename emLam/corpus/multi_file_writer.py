@@ -37,7 +37,7 @@ class MultiFileWriter(TextIOBase):
     def write(self, s):
         for line in s.splitlines():
             self.f.write(line)
-            self.f.write('\n')
+            self.f.write(u'\n')
             self.lines += 1
             if self.lines >= self.max_lines and (
                     not self.wait_for_empty or line == ''):
@@ -49,9 +49,9 @@ class MultiFileWriter(TextIOBase):
         files if we need a new digit.
         """
         self.f.close()
-        digits = math.log10(self.index)
+        digits = int(math.log10(self.index))
         self.index += 1
-        new_digits = math.log10(self.index)
+        new_digits = int(math.log10(self.index))
         if new_digits > digits:
             for i in range(1, self.index):
                 os.rename(self.__get_file_name(self.index - 1, digits),
