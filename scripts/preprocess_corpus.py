@@ -46,7 +46,7 @@ def parse_arguments():
     args.corpus = corpora[args.corpus]
     args.preprocessor = get_all_preprocessors()[args.preprocessor]
     if args.log_level:
-        args.log_level = logging.getattr(args.log_level.upper())
+        args.log_level = getattr(logging, args.log_level.upper())
 
     return args
 
