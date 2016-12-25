@@ -12,6 +12,7 @@ from emLam.utils import openall
 class Corpus(Component):
     """Base class for corpus objects."""
     def __init__(self, max_lines):
+        super(Corpus, self).__init__()
         self.max_lines = max_lines
 
     def instream(self, input_file):
