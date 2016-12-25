@@ -24,9 +24,6 @@ class MNSZ2Corpus(RawCorpus):
     spaces = re.compile(r'[ \t]+')
     empty_lines = re.compile(r'\n[ \t]+\n')
     word_per_line = re.compile(r'off[/\\]jrc')
-    # Maximum length of a paragraph (longer P's break QunToken)
-    max_p_length = 60000
-    eos = re.compile(ur'[a-záéíóöőúüű]{3,}[.!?]+')
 
     def __init__(self, foreign=False):
         self.foreign = foreign
@@ -65,10 +62,7 @@ class MNSZ2Corpus(RawCorpus):
                             texts = [self.__clean_text(node.text)] + texts
                         if texts:
                             # LOL, __join() returns a list :D But see below
-                            chunks = self.__split_for_qt(self.__join(texts))
-                            for chunk in chunks:
-                                yield chunk
-                                #print(chunk.encode('utf-8'))
+                            yield self.__join(texts) + u'\n\n'
                             texts = []
                         in_p = False
                     else:
@@ -90,38 +84,7 @@ class MNSZ2Corpus(RawCorpus):
                     texts += self.__clean_text(node.text).split()
                 elif node.tag == 'div':
                     #print(u' '.join(texts).encode('utf-8') + '\n')
-                    for chunk in self.__split_for_qt(u' '.join(texts)):
-                        yield chunk
-                        #print(chunk.encode('utf-8')[:-1])
-
-    @staticmethod
-    def __split_for_qt(text, sep='\n\n'):
-        """
-        This function also splits the output into chunks small enough for
-        QunToken to be able to process along sentence boundaries (best effort).
-        Any chunk longer than this threshold (such as those stupid "high-lit"
-        books where the author thinks it is a good idea to write a chapter /
-        the whole book as one very long sentence) is discarded.
-        """
-        if len(text) > MNSZ2Corpus.max_p_length:
-            chunks, last_pos = [], 0
-            while text:
-                for m in MNSZ2Corpus.eos.finditer(text):
-                    if m.end() > MNSZ2Corpus.max_p_length:
-                        if last_pos != 0:
-                            chunks.append(text[:last_pos] + sep)
-                            text = text[last_pos:]
-                        else:
-                            text = text[m.end():]
-                        break
-                    else:
-                        last_pos = m.end()
-                else:
-                    chunks.append(text + sep)
-                    text = None
-            return chunks
-        else:
-            return [text + sep]
+                    yield u' '.join(texts) + u'\n\n'
 
     @staticmethod
     def __join(texts):
@@ -161,7 +124,7 @@ class MNSZ2Corpus(RawCorpus):
 
     @classmethod
     def child_parser(cls, subparsers):
-        parser = subparsers.add_parser('hu_mnsz2', help='Hungarian National Corpus')
+        parser = subparsers.add_parser(cls.NAME, help='Hungarian National Corpus')
         parser.add_argument('--foreign', '-f', action='store_true',
                             help='include paragraphs marked with lang=foreign')
         return parser

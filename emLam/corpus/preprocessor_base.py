@@ -31,14 +31,14 @@ class Preprocessor(Component):
 class CopyPreprocessor(Preprocessor):
     """This class simply copies the input to the output."""
     NAME = 'copy'
+    def __init__(self):
+        pass
 
     def preprocess(self, input_stream, output_stream):
         for line in input_stream:
-            print(line, file=output_stream)
+            print(line, file=output_stream, end=u'')
 
     @classmethod
     def parser(cls, subparsers):
-        """
-        This class should not be added to the list of selectable preprocessors.
-        """
-        pass
+        parser = subparsers.add_parser(
+            cls.NAME, help='Copies input lines to the output.')
