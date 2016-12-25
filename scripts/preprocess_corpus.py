@@ -11,6 +11,7 @@ from argparse import ArgumentParser
 import os
 import os.path as op
 from queue import Empty
+import traceback
 
 from emLam.corpus import get_all_corpora, get_all_preprocessors
 from emLam.utils import run_queued
@@ -88,11 +89,11 @@ def process_file(corpus_preprocessor, queue):
             except Empty:
                 break
             except:
-                print('Exception in file {} in process {}:'.format(
-                    infile, os.getpid()))
-                raise
+                print('EXCEPTION in file {} in process {}: {}'.format(
+                    infile, os.getpid(), traceback.format_exc()))
+                preprocessor.cleanup()
+                preprocessor.initialize()
     except Exception as e:
-        import traceback
         print(traceback.format_exc())
         raise
     finally:
