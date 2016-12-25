@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""QueueHandler and QueueListener Python 2.7."""
+"""
+QueueHandler and QueueListener Python 2.7. See
+- http://plumberjack.blogspot.hu/2010/09/using-logging-with-multiprocessing.html
+- http://gist.github.com/591589 (improved version from the link above)
+- http://plumberjack.blogspot.hu/2010/09/improved-queuehandler-queuelistener.html
+"""
 
 # Copyright (C) 2010 Vinay Sajip. All Rights Reserved.
 #
