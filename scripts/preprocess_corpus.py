@@ -27,7 +27,8 @@ def parse_arguments():
                         help='the target directory.')
     parser.add_argument('--processes', '-p', type=int, default=1,
                         help='the number of files to process parallelly.')
-    parser.add_argument('--log-level', '-L', type=int, default=None,
+    parser.add_argument('--log-level', '-L', type=str, default=None,
+                        choices=['debug', 'info', 'warning', 'error', 'critical'],
                         help='the logging level.')
     subparsers = parser.add_subparsers(
         title='Corpus selection',
@@ -44,6 +45,8 @@ def parse_arguments():
         parser.error('Source and target directories must differ.')
     args.corpus = corpora[args.corpus]
     args.preprocessor = get_all_preprocessors()[args.preprocessor]
+    if args.log_level:
+        args.log_level = logging.getattr(args.log_level.upper())
 
     return args
 
