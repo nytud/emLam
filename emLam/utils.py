@@ -139,7 +139,6 @@ def run_queued(fn, params, processes=1, queued_params=None, logging_level=None):
         sh.setFormatter(f)
         ql = QueueListener(logging_queue, sh)
         ql.start()
-        params = list(params) + [logging_level, logging_queue]
         f = partial(fn, queue=queue, logging_level=logging_level,
                     logging_queue=logging_queue)
     else:
