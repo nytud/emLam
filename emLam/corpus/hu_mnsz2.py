@@ -12,7 +12,6 @@ import sys
 from lxml import etree
 
 from emLam.corpus.corpus_base import RawCorpus
-from emLam.corpus.hacks import split_for_qt
 from emLam.utils import openall
 
 
@@ -63,10 +62,7 @@ class MNSZ2Corpus(RawCorpus):
                             texts = [self.__clean_text(node.text)] + texts
                         if texts:
                             # LOL, __join() returns a list :D But see below
-                            chunks = split_for_qt(self.__join(texts))
-                            for chunk in chunks:
-                                yield chunk
-                                #print(chunk.encode('utf-8'))
+                            yield self.__join(texts) + u'\n\n'
                             texts = []
                         in_p = False
                     else:
@@ -88,9 +84,7 @@ class MNSZ2Corpus(RawCorpus):
                     texts += self.__clean_text(node.text).split()
                 elif node.tag == 'div':
                     #print(u' '.join(texts).encode('utf-8') + '\n')
-                    for chunk in split_for_qt(u' '.join(texts)):
-                        yield chunk
-                        #print(chunk.encode('utf-8')[:-1])
+                    yield u' '.join(texts) + u'\n\n'
 
     @staticmethod
     def __join(texts):
@@ -130,7 +124,7 @@ class MNSZ2Corpus(RawCorpus):
 
     @classmethod
     def child_parser(cls, subparsers):
-        parser = subparsers.add_parser('hu_mnsz2', help='Hungarian National Corpus')
+        parser = subparsers.add_parser(cls.NAME, help='Hungarian National Corpus')
         parser.add_argument('--foreign', '-f', action='store_true',
                             help='include paragraphs marked with lang=foreign')
         return parser
