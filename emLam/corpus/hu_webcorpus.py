@@ -2,6 +2,7 @@
 """Corpus reader for the Hungarian Webcorpus."""
 
 from __future__ import absolute_import, division, print_function
+from contextlib import contextmanager
 from html.parser import HTMLParser  # Needs future, too
 import io
 import itertools
@@ -21,20 +22,35 @@ class Webcorpus(RawCorpus):
         self.max_entities = max_entities
         self.html_parser = HTMLParser()
 
-    def files_to_streams(self, input_file, output_file):
-        """
-        Reads input_file according to the corpus format (compressed / not). In
-        the former case, modifies the output_file name so that the '.tar' part
-        is not included in it.
-        """
+    @contextmanager
+    def instream(self, input_file):
         if self.compressed:
-            output_file = self.rename_p.sub(r'\1', output_file)
             input_stream = self.enumerate_tar
         else:
             input_stream = self.enumerate_file
-        with openall(output_file, 'wt', encoding='utf-8') as outf:
-            inf = itertools.chain.from_iterable(input_stream(input_file))
-            yield self.__read_sentence(inf), outf
+        inf = itertools.chain.from_iterable(input_stream(input_file))
+        yield self.__read_sentence(inf)
+
+    def outstream(self, output_file):
+        """Removes the 'tar' from the name of the output file, if compressed."""
+        if self.compressed:
+            output_file = self.rename_p.sub(r'\1', output_file)
+        return super(Webcorpus, self).outstream(output_file)
+
+#    def files_to_streams(self, input_file, output_file):
+#        """
+#        Reads input_file according to the corpus format (compressed / not). In
+#        the former case, modifies the output_file name so that the '.tar' part
+#        is not included in it.
+#        """
+#        if self.compressed:
+#            output_file = self.rename_p.sub(r'\1', output_file)
+#            input_stream = self.enumerate_tar
+#        else:
+#            input_stream = self.enumerate_file
+#        with openall(output_file, 'wt', encoding='utf-8') as outf:
+#            inf = itertools.chain.from_iterable(input_stream(input_file))
+#            yield self.__read_sentence(inf), outf
 
     def __read_sentence(self, input_stream):
         """Returns a sentence a time, cleaned of HTML entities."""
