@@ -7,12 +7,15 @@ import bz2
 from functools import partial
 import gzip
 from io import open, TextIOWrapper
+import logging
 from multiprocessing import Manager, Pool
 import os
 import os.path as op
 from queue import Queue
 import re
 import sys
+
+from emLam.logging import QueueListener
 
 __allname_p = re.compile(r'^(.+?)(\.gz|\.bz2)?$')
 
@@ -108,11 +111,16 @@ def run_function(fn, params, processes=1):
         return ret
 
 
-def run_queued(fn, params, processes=1, queued_params=None):
+def run_queued(fn, params, processes=1, queued_params=None, logging_level=None):
     """
     Same as run_function, but the function should be such that it accepts a
     parameter queue and reads its inputs from there; params still contains
     options for the function.
+
+    If logging_level is not None, a QueueHandler -- QueueListener pair is set
+    up so that the function can forward its logging to the stderr of the main
+    process. In this case, the params sent to the function are extended by
+    this logging level and the logging queue.
     """
     if processes < 1:
         raise ValueError('Number of processes must be at least 1.')
@@ -121,15 +129,30 @@ def run_queued(fn, params, processes=1, queued_params=None):
     for qp in queued_params:
         queue.put_nowait(qp)
 
+    if logging_level:
+        logging_queue = Queue() if processes == 1 else Manager().Queue()
+        sh = logging.StreamHandler()
+        sh.setLevel(logging_level)
+        process_log = '(%(process)d)' if processes > 1 else ''
+        f = logging.Formatter(
+            '%(asctime)s %(levelname)s %(name)s{} %(message)s'.format(process_log))
+        sh.setFormatter(f)
+        ql = QueueListener(logging_queue, sh)
+        ql.start()
+        params = list(params) + [logging_level, logging_queue]
+
     f = partial(fn, queue=queue)
     if processes == 1:
-        return list(map(f, params))
+        ret = list(map(f, params))
     else:
         p = Pool(processes)
         ret = p.map(f, params)
         p.close()
         p.join()
-        return ret
+
+    if logging_level:
+        ql.stop()
+    return ret
 
 
 class AttrDict(dict):

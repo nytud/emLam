@@ -8,12 +8,13 @@ Webcorpus and MNSZ2.
 from __future__ import absolute_import, division, print_function
 from builtins import range
 from argparse import ArgumentParser
+import logging
 import os
 import os.path as op
 from queue import Empty
-import traceback
 
 from emLam.corpus import get_all_corpora, get_all_preprocessors
+from emLam.logging import QueueHandler
 from emLam.utils import run_queued
 
 
@@ -75,26 +76,36 @@ def source_target_file_list(source_dir, target_dir):
     return zip(source_files, target_files)
 
 
-def process_file(corpus_preprocessor, queue):
+def process_file(corpus_preprocessor, queue, *log):
     corpus, preprocessor = corpus_preprocessor
+    logger = logging.getLogger()
+    if log:
+        logging_level, logging_queue = log
+        logger.setLevel(logging_level)
+        qh = QueueHandler(logging_queue)
+        qh.setLevel(logging_level)
+        logger.addHandler(qh)
+    else:
+        # Don't log anything
+        logger.setLevel(logging.CRITICAL + 1)
     preprocessor.initialize()
     try:
         while True:
             try:
                 infile, outfile = queue.get_nowait()
-                print("Started", infile)
+                logging.getLogger().info('Started processing {}'.format(infile))
                 for ins, outs in corpus.files_to_streams(infile, outfile):
                     preprocessor.preprocess(ins, outs)
-                print("Done", infile)
+                logging.getLogger().info('Done processing {}'.format(infile))
             except Empty:
                 break
             except:
-                print('EXCEPTION in file {} in process {}: {}'.format(
-                    infile, os.getpid(), traceback.format_exc()))
+                logging.getLogger().exception('Exception in file {}'.format(
+                    infile))
                 preprocessor.cleanup()
                 preprocessor.initialize()
     except Exception as e:
-        print(traceback.format_exc())
+        logging.getLogger().exception('Unexpected exception')
         raise
     finally:
         preprocessor.cleanup()

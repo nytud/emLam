@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, division, print_function
 from future.utils import with_metaclass
+import logging
 import inspect
 
 
@@ -17,6 +18,10 @@ class NamedClass(type):
 
 class Component(with_metaclass(NamedClass, object)):
     """Base class for corpus objects."""
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.name)
+        self.logger.setLevel(self.logger.parent.level)
+
     @classmethod
     def parser(cls, subparsers):
         """
@@ -35,4 +40,6 @@ class Component(with_metaclass(NamedClass, object)):
         """
         argspec = inspect.getargspec(cls.__init__).args
         component_args = {k: kwargs[k] for k in argspec[1:] if k in kwargs}
+        logging.getLogger(cls.name).debug(
+            'Instantiating with parameters {}'.format(component_args))
         return cls(**component_args)

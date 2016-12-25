@@ -31,7 +31,7 @@ class MNSZ2Corpus(RawCorpus):
     def files_to_streams(self, input_file, output_file):
         if os.path.basename(input_file) == 'off_hu_jrc.xml':
             extractor = self.__extract_word_per_line
-        else: 
+        else:
             extractor = self.__extract_text
         with openall(input_file, 'rb') as inf:
             with openall(output_file, 'wt', encoding='utf-8') as outf:
@@ -71,7 +71,6 @@ class MNSZ2Corpus(RawCorpus):
 
     def __extract_word_per_line(self, input_stream):
         """Extracts the text from the even more stupid xml."""
-        recording, in_p = False, False
         texts = []
         for event, node in etree.iterparse(input_stream, huge_tree=True,
                                            events=['start', 'end'],
@@ -83,7 +82,7 @@ class MNSZ2Corpus(RawCorpus):
                 if node.tag == 'p':
                     texts += self.__clean_text(node.text).split()
                 elif node.tag == 'div':
-                    #print(u' '.join(texts).encode('utf-8') + '\n')
+                    # print(u' '.join(texts).encode('utf-8') + '\n')
                     yield u' '.join(texts) + u'\n\n'
 
     @staticmethod
@@ -119,7 +118,7 @@ class MNSZ2Corpus(RawCorpus):
         else:
             s = s.decode('iso-8859-2') if type(s) == binary_type else s
             s = MNSZ2Corpus.html_parser.unescape(s)
-            #s = s.replace('\n', ' ')
+            # s = s.replace('\n', ' ')
             return s.strip()
 
     @classmethod

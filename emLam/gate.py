@@ -6,10 +6,10 @@ from builtins import range
 from configparser import RawConfigParser  # Should work under 2.7, too
 from future.moves.urllib.parse import urlencode
 from io import open, BytesIO, StringIO
+import logging
 import os
 import re
 from subprocess import Popen
-import sys
 import time
 
 from lxml import etree
@@ -28,7 +28,7 @@ class GateError(Exception):
 class Gate(object):
     """hunlp-GATE interface object."""
     def __init__(self, gate_props, restart_every=None,
-                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode'):
+                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode', logger=None):
         """
         gate_props is the name of the GATE properties file. It is suppoesed to
         be in the hunlp-GATE directory.
@@ -38,6 +38,7 @@ class Gate(object):
         because it (hunlp-)GATE leaking memory like there is no tomorrow.
         """
         # Opt: ML3-SSTok
+        self.logger = logger or logging.getLogger('dummy')
         self.gate_props = gate_props
         self.gate_dir = os.path.dirname(gate_props)
         self.gate_url = self._gate_url()
@@ -60,31 +61,30 @@ class Gate(object):
         return '{}:{}'.format(cp.get('GATE', 'host'), cp.get('GATE', 'port'))
 
     def __start_server(self):
-        print("Starting server {}".format(self.gate_props))
+        self.logger.debug('Starting server {}...'.format(self.gate_props))
         # TODO eat the server's output -- in this case, there is no need to wait
         self.server = Popen(['./gate-server.sh', self.gate_props],
                             cwd=self.gate_dir)
         self.parsed = 0
         time.sleep(10)
-        print("Started server {}".format(self.gate_props))
+        self.logger.info('Started server {}'.format(self.gate_props))
 
     def __stop_server(self):
-        print("Stopping server? {}".format(self.gate_props))
+        self.logger.debug('Stopping server {}?'.format(self.gate_props))
         if self.server:
-            print("Stopping server {}".format(self.gate_props))
+            self.logger.debug('Stopping server {}'.format(self.gate_props))
             try:
                 requests.post('http://{}/exit'.format(self.gate_url))
             except:
                 pass
             self.server.wait()
-            print("Stopped server {}".format(self.gate_props))
+            self.logger.info('Stopped server {}'.format(self.gate_props))
         self.server = None
 
     def __restart_server(self):
-        print('RESTART!')
+        self.logger.debug('Restarting server {}'.format(self.gate_props))
         self.__stop_server()
         self.__start_server()
-
 
     def parse(self, text, anas=False):
         """Parses a text with a running GATE server."""
@@ -114,25 +114,30 @@ class Gate(object):
             self.__stop_server()
             raise
 
-
     def __send_request(self, url):
         for tries in range(3):
             try:
                 r = requests.post(url)
                 if r.status_code != 200:
-                    print(u'Server {} returned an illegal status code {}'.format(
-                        self.gate_url, r.status_code))
+                    self.logger.warning(
+                        'Server {} returned an illegal status code {} (try {})'.format(
+                            self.gate_props, r.status_code, tries + 1))
                     r = None
             except Exception as e:
-                print(u'Exception {} while trying to access server {}'.format(
-                    e, self.gate_url))
+                self.logger.warning(
+                    u'Exception {} while trying to access server {} (try {})'.format(
+                        e, self.gate_url, tries + 1))
                 r = None
             if not r:
                 self.__restart_server()
             if r:
                 return r.content
         else:
-            raise GateError(u'Number of tries exceeded with url {}'.format(url))
+            self.logger.error(
+                u'Number of tries exceeded with server {}, url {}'.format(
+                    self.gate_props, url))
+            raise GateError(
+                u'Number of tries exceeded with server {}'.format(self.gate_props))
 
 
 def parse_gate_xml_file(xml_file, get_anas=False):

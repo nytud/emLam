@@ -77,10 +77,10 @@ class GATEPreprocessor(Preprocessor):
 
     @classmethod
     def instantiate(cls, process_id=1, **kwargs):
-            mod_args = dict(kwargs)
-            mod_args['gate_props'] = kwargs['gate_props'].replace('%', str(process_id))
-            if process_id > 1 and mod_args['gate_props'] == kwargs['gate_props']:
-                raise ValueError('At least as many gate servers must be '
-                                 'specified as there are processes.')
-            return super(GATEPreprocessor, cls).instantiate(process_id,
-                                                            **mod_args)
+        mod_args = dict(kwargs)
+        mod_args['gate_props'] = kwargs['gate_props'].replace('%', str(process_id))
+        if process_id > 1 and mod_args['gate_props'] == kwargs['gate_props']:
+            raise ValueError('At least as many gate servers must be '
+                             'specified as there are processes.')
+        return super(GATEPreprocessor, cls).instantiate(process_id,
+                                                        **mod_args)
