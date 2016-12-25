@@ -78,8 +78,10 @@ def source_target_file_list(source_dir, target_dir):
     return zip(source_files, target_files)
 
 
-def process_file(corpus_preprocessor, queue, logging_level=None, logging_queue=None):
-    corpus, preprocessor = corpus_preprocessor
+def process_file(components, queue, logging_level=None, logging_queue=None):
+    corpus_cls, preprocessor_cls, pid, args = components
+
+    # First set up the logger used by the corpus and the preprocessor
     logger = logging.getLogger()
     if logging_level:
         logger.setLevel(logging_level)
@@ -89,6 +91,10 @@ def process_file(corpus_preprocessor, queue, logging_level=None, logging_queue=N
     else:
         # Don't log anything
         logger.setLevel(logging.CRITICAL + 1)
+
+    # Then we can instantiate the objects that do the actual work
+    corpus = corpus_cls.instantiate(pid, args)
+    preprocessor = preprocessor_cls.instantiate(pid, args)
     preprocessor.initialize()
     try:
         while True:
@@ -114,19 +120,21 @@ def process_file(corpus_preprocessor, queue, logging_level=None, logging_queue=N
 
 def main():
     args = parse_arguments()
-    try:
-        corpora = [args.corpus.instantiate(p + 1, **args.__dict__)
-                   for p in range(args.processes)]
-        preprocessors = [args.preprocessor.instantiate(p + 1, **args.__dict__)
-                         for p in range(args.processes)]
-    except ValueError as ve:
-        # TODO logging
-        raise
+    components = [(args.corpus, args.preprocessor, p + 1, dict(args.__dict__))
+                  for p in range(args.processes)]
+    # try:
+    #     # corpora = [args.corpus.instantiate(p + 1, **args.__dict__)
+    #     #            for p in range(args.processes)]
+    #     # preprocessors = [args.preprocessor.instantiate(p + 1, **args.__dict__)
+    #     #                  for p in range(args.processes)]
+    # except ValueError as ve:
+    #     # TODO logging
+    #     raise
     os.nice(20)  # Play nice
 
     source_target_files = source_target_file_list(args.source_dir, args.target_dir)
 
-    run_queued(process_file, zip(corpora, preprocessors),
+    run_queued(process_file, components,
                args.processes, source_target_files, args.log_level)
 
 
