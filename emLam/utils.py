@@ -140,8 +140,12 @@ def run_queued(fn, params, processes=1, queued_params=None, logging_level=None):
         ql = QueueListener(logging_queue, sh)
         ql.start()
         params = list(params) + [logging_level, logging_queue]
+        f = partial(fn, queue=queue, logging_level=logging_level,
+                    logging_queue=logging_queue)
+    else:
+        f = partial(fn, queue=queue)
 
-    f = partial(fn, queue=queue)
+    #f = partial(fn, queue=queue)
     if processes == 1:
         ret = list(map(f, params))
     else:

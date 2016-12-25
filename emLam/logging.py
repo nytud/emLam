@@ -20,8 +20,8 @@
 # Above copyright only concerns the implementation of the two classes; the
 # scaffolding code is mine and is under the same license as the rest of emLam.
 
+from __future__ import absolute_import
 import logging
-import logging.handlers
 import queue
 import platform
 import threading

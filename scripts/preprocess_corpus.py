@@ -27,6 +27,8 @@ def parse_arguments():
                         help='the target directory.')
     parser.add_argument('--processes', '-p', type=int, default=1,
                         help='the number of files to process parallelly.')
+    parser.add_argument('--log-level', '-L', type=int, default=None,
+                        help='the logging level.')
     subparsers = parser.add_subparsers(
         title='Corpus selection',
         description='This section lists the corpora processor available for '
@@ -76,11 +78,10 @@ def source_target_file_list(source_dir, target_dir):
     return zip(source_files, target_files)
 
 
-def process_file(corpus_preprocessor, queue, *log):
+def process_file(corpus_preprocessor, queue, logging_level=None, logging_queue=None):
     corpus, preprocessor = corpus_preprocessor
     logger = logging.getLogger()
-    if log:
-        logging_level, logging_queue = log
+    if logging_level:
         logger.setLevel(logging_level)
         qh = QueueHandler(logging_queue)
         qh.setLevel(logging_level)
@@ -126,7 +127,7 @@ def main():
     source_target_files = source_target_file_list(args.source_dir, args.target_dir)
 
     run_queued(process_file, zip(corpora, preprocessors),
-               args.processes, source_target_files)
+               args.processes, source_target_files, args.log_level)
 
 
 if __name__ == '__main__':
