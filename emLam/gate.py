@@ -117,7 +117,7 @@ class Gate(object):
     def __send_request(self, url):
         for tries in range(3):
             try:
-                r = requests.post(url, timeout=30)
+                r = requests.post(url, timeout=120)
                 if r.status_code != 200:
                     self.logger.warning(
                         'Server {} returned an illegal status code {} (try {})'.format(
