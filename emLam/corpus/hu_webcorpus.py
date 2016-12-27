@@ -58,11 +58,17 @@ class Webcorpus(RawCorpus):
         for line in input_stream:
             if line.startswith(u'<s>'):
                 text = line[3:]
+                orig_text = text
                 amps = text.count(u'&')
                 if amps > 0:
                     text = self.html_parser.unescape(text)
-                    entities = text.count(u'&') - amps
-                    if entities / float(len(text)) > self.max_entities:
+                    entities = amps - text.count(u'&')
+                    self.logger.debug(
+                        u'Entities: {}, amps: {}, len: {}; ratio: {} => {}: {} ({})'.format(
+                            entities, amps, len(text), entities / float(len(text)),
+                            entities / float(len(text)) > self.max_entities,
+                            text.strip(), orig_text.strip()).encode('utf-8'))
+                    if len(text) >entities / float(len(text)) > self.max_entities:
                         # Skip sentence if too many entities (i.e. foreign script)
                         continue
                 yield text
