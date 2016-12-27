@@ -81,11 +81,8 @@ def source_target_file_list(source_dir, target_dir):
     return zip(source_files, target_files)
 
 
-def process_file(components, queue, logging_level=None, logging_queue=None):
-    corpus_cls, preprocessor_cls, pid, args = components
-
-    # First set up the logger used by the corpus and the preprocessor
-    logger = logging.getLogger()
+def setup_logger(logging_level, logging_queue):
+    logger = logging.getLogger('emLam')
     if logging_level:
         logger.setLevel(logging_level)
         qh = QueueHandler(logging_queue)
@@ -95,6 +92,16 @@ def process_file(components, queue, logging_level=None, logging_queue=None):
         # Don't log anything
         logger.setLevel(logging.CRITICAL + 1)
 
+    logger = logging.getLogger('emLam.script')
+    logger.setLevel(logging_level)
+    return logger
+
+
+def process_file(components, queue, logging_level=None, logging_queue=None):
+    corpus_cls, preprocessor_cls, pid, args = components
+    # First set up the logger used by the corpus and the preprocessor
+    logger = setup_logger(logging_level, logging_queue)
+
     # Then we can instantiate the objects that do the actual work
     corpus = corpus_cls.instantiate(pid, **args)
     preprocessor = preprocessor_cls.instantiate(pid, **args)
@@ -103,19 +110,20 @@ def process_file(components, queue, logging_level=None, logging_queue=None):
         while True:
             try:
                 infile, outfile = queue.get_nowait()
-                logging.getLogger().info('Started processing {}'.format(infile))
+                logger.info('Started processing {}'.format(infile))
                 for ins, outs in corpus.files_to_streams(infile, outfile):
                     preprocessor.preprocess(ins, outs)
-                logging.getLogger().info('Done processing {}'.format(infile))
+                logger.info('Done processing {}'.format(infile))
             except Empty:
+                logger.debug('Queue depleted.')
                 break
             except:
-                logging.getLogger().exception('Exception in file {}'.format(
+                logger.exception('Exception in file {}'.format(
                     infile))
                 preprocessor.cleanup()
                 preprocessor.initialize()
     except Exception as e:
-        logging.getLogger().exception('Unexpected exception')
+        logger.exception('Unexpected exception')
         raise
     finally:
         preprocessor.cleanup()

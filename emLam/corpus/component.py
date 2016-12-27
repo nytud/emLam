@@ -19,7 +19,7 @@ class NamedClass(type):
 class Component(with_metaclass(NamedClass, object)):
     """Base class for corpus objects."""
     def __init__(self):
-        self.logger = logging.getLogger(self.__class__.name)
+        self.logger = logging.getLogger(inspect.getmodule(self).__name__)
         self.logger.setLevel(self.logger.parent.level)
 
     @classmethod
