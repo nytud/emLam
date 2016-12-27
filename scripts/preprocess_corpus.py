@@ -84,6 +84,7 @@ def source_target_file_list(source_dir, target_dir):
 def setup_logger(logging_level, logging_queue):
     logger = logging.getLogger('emLam')
     if logging_level:
+        # Set up root logger
         logger.setLevel(logging_level)
         qh = QueueHandler(logging_queue)
         qh.setLevel(logging_level)
@@ -93,7 +94,7 @@ def setup_logger(logging_level, logging_queue):
         logger.setLevel(logging.CRITICAL + 1)
 
     logger = logging.getLogger('emLam.script')
-    logger.setLevel(logging_level)
+    logger.setLevel(logger.parent.level)
     return logger
 
 
