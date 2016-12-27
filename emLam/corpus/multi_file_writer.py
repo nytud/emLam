@@ -21,7 +21,7 @@ class MultiFileWriter(TextIOBase):
     def __get_file_name(self, index=None, digits=None):
         basename, extension = allname(self.file_name)
         ext = extension if extension else ''
-        num_format = '{{:{}d}}'.format(digits) if digits else '{}'
+        num_format = '{{:0{}d}}'.format(digits) if digits else '{}'
         index_str = num_format.format(self.index if index is None else index)
         return '{}-{}{}'.format(basename, index_str, ext)
 
@@ -49,13 +49,13 @@ class MultiFileWriter(TextIOBase):
         files if we need a new digit.
         """
         self.f.close()
-        digits = int(math.log10(self.index))
+        digits = int(math.log10(self.index)) + 1
         self.index += 1
-        new_digits = int(math.log10(self.index))
+        new_digits = int(math.log10(self.index)) + 1
         if new_digits > digits:
             for i in range(1, self.index):
-                os.rename(self.__get_file_name(self.index - 1, digits),
-                          self.__get_file_name(self.index, new_digits))
+                os.rename(self.__get_file_name(i, digits),
+                          self.__get_file_name(i, new_digits))
         self.f = openall(self.__get_file_name(), 'wt')
         self.lines = 0
 
