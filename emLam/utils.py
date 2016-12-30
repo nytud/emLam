@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, division, print_function
 from builtins import map
+from contextlib import contextmanager
 import bz2
 from functools import partial
 import gzip
@@ -15,7 +16,7 @@ from queue import Queue
 import re
 import sys
 
-from emLam.logging import QueueListener
+from emLam.logging import QueueListener, QueueHandler
 
 __allname_p = re.compile(r'^(.+?)(\.gz|\.bz2)?$')
 
@@ -93,7 +94,31 @@ def source_target_file_list(source_dir, target_dir):
     return tuples
 
 
-def run_function(fn, params, processes=1):
+@contextmanager
+def __configure_logging(fn, processes, logging_level, **kwargs):
+    if logging_level:
+        logging_queue = Queue() if processes == 1 else Manager().Queue()
+        sh = logging.StreamHandler()
+        sh.setLevel(logging_level)
+        process_log = '(%(process)d)' if processes > 1 else ''
+        f = logging.Formatter(
+            '%(asctime)s %(levelname)s %(name)s{} %(message)s'.format(process_log))
+        sh.setFormatter(f)
+        ql = QueueListener(logging_queue, sh)
+        ql.start()
+        f = partial(fn, logging_level=logging_level,
+                    logging_queue=logging_queue, **kwargs)
+    else:
+        f = partial(fn, **kwargs)
+        ql = None
+
+    yield f
+
+    if ql:
+        ql.stop()
+
+
+def run_function(fn, params, processes=1, logging_level=None):
     """
     Runs fn with parameters params. If the number of processes is 1, it is
     equivalent to fn(params); otherwise, the function is run in a
@@ -101,14 +126,17 @@ def run_function(fn, params, processes=1):
     """
     if processes < 1:
         raise ValueError('Number of processes must be at least 1.')
-    elif processes == 1:
-        return list(map(fn, params))
-    else:
-        p = Pool(processes)
-        ret = p.map(fn, params)
-        p.close()
-        p.join()
-        return ret
+
+    with __configure_logging(fn, processes, logging_level) as f:
+        if processes == 1:
+            return list(map(f, params))
+        else:
+            p = Pool(processes)
+            print(params)
+            ret = p.map(f, params)
+            p.close()
+            p.join()
+            return ret
 
 
 def run_queued(fn, params, processes=1, queued_params=None, logging_level=None):
@@ -129,33 +157,39 @@ def run_queued(fn, params, processes=1, queued_params=None, logging_level=None):
     for qp in queued_params:
         queue.put_nowait(qp)
 
-    if logging_level:
-        logging_queue = Queue() if processes == 1 else Manager().Queue()
-        sh = logging.StreamHandler()
-        sh.setLevel(logging_level)
-        process_log = '(%(process)d)' if processes > 1 else ''
-        f = logging.Formatter(
-            '%(asctime)s %(levelname)s %(name)s{} %(message)s'.format(process_log))
-        sh.setFormatter(f)
-        ql = QueueListener(logging_queue, sh)
-        ql.start()
-        f = partial(fn, queue=queue, logging_level=logging_level,
-                    logging_queue=logging_queue)
-    else:
-        f = partial(fn, queue=queue)
+    with __configure_logging(fn, processes, logging_level, queue=queue) as f:
+        #f = partial(fn, queue=queue)
+        if processes == 1:
+            ret = list(map(f, params))
+        else:
+            p = Pool(processes)
+            ret = p.map(f, params)
+            p.close()
+            p.join()
 
-    #f = partial(fn, queue=queue)
-    if processes == 1:
-        ret = list(map(f, params))
-    else:
-        p = Pool(processes)
-        ret = p.map(f, params)
-        p.close()
-        p.join()
-
-    if logging_level:
-        ql.stop()
     return ret
+
+
+def setup_logger(logging_level, logging_queue, name='script'):
+    """Setups logging for scripts."""
+    logger = logging.getLogger('emLam')
+    # Remove old handlers 
+    while logger.handlers:
+        logger.removeHandler(logger.handlers[-1])
+
+    if logging_level:
+        # Set up root logger
+        logger.setLevel(logging_level)
+        qh = QueueHandler(logging_queue)
+        qh.setLevel(logging_level)
+        logger.addHandler(qh)
+    else:
+        # Don't log anything
+        logger.setLevel(logging.CRITICAL + 1)
+
+    logger = logging.getLogger('emLam.' + name)
+    logger.setLevel(logger.parent.level)
+    return logger
 
 
 class AttrDict(dict):

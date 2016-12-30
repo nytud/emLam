@@ -14,8 +14,7 @@ import os.path as op
 from queue import Empty
 
 from emLam.corpus import get_all_corpora, get_all_preprocessors
-from emLam.logging import QueueHandler
-from emLam.utils import run_queued
+from emLam.utils import run_queued, setup_logger
 
 
 def parse_arguments():
@@ -79,23 +78,6 @@ def source_target_file_list(source_dir, target_dir):
             os.makedirs(td)
         target_files.append(tf)
     return zip(source_files, target_files)
-
-
-def setup_logger(logging_level, logging_queue):
-    logger = logging.getLogger('emLam')
-    if logging_level:
-        # Set up root logger
-        logger.setLevel(logging_level)
-        qh = QueueHandler(logging_queue)
-        qh.setLevel(logging_level)
-        logger.addHandler(qh)
-    else:
-        # Don't log anything
-        logger.setLevel(logging.CRITICAL + 1)
-
-    logger = logging.getLogger('emLam.script')
-    logger.setLevel(logger.parent.level)
-    return logger
 
 
 def process_file(components, queue, logging_level=None, logging_queue=None):
