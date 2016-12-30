@@ -72,15 +72,27 @@ class Webcorpus(RawCorpus):
                     if len(text) >entities / float(len(text)) > self.max_entities:
                         # Skip sentence if too many entities (i.e. foreign script)
                         continue
-                # Get rid of extended Unicode characters, which are most likely
-                # there by accident
-                clean_text = text.replace(u'\t', u' ')
-                clean_text = filter(lambda c: ord(c) <= 65535, clean_text)
-                clean_text = filter(lambda c: not category(c).startswith('C'), clean_text)
+                clean_text = self.__clean_text(text)
                 if clean_text != text:
                     self.logger.debug(u'Filtered text: `{}` -> `{}`'.format(
                         text, clean_text))
                 yield clean_text + u'\n'
+
+    @staticmethod
+    def __clean_text(text):
+        """Cleans the text of all unicode shenanigans."""
+        clean_text = []
+        for c in text.replace(u'\t', u' '):
+            # Get rid of extended Unicode characters, which are most likely
+            # there by accident
+            if ord(c) > 65535:
+                continue
+            cat = category(c)
+            # Control characters are also bugs in the corpus
+            if cat.startswith('C'):
+                continue
+            clean_text.append(c if not cat.startswith('Z') else ' ')
+        return u''.join(clean_text)
 
     @classmethod
     def child_parser(cls, subparsers):
