@@ -8,6 +8,7 @@ import io
 import itertools
 import re
 import tarfile
+from unicodedata import category
 
 from emLam.corpus.corpus_base import RawCorpus
 from emLam.utils import openall
@@ -57,7 +58,7 @@ class Webcorpus(RawCorpus):
         """Returns a sentence a time, cleaned of HTML entities."""
         for line in input_stream:
             if line.startswith(u'<s>'):
-                text = line[3:]
+                text = line[3:].strip()
                 orig_text = text
                 amps = text.count(u'&')
                 if amps > 0:
@@ -71,7 +72,15 @@ class Webcorpus(RawCorpus):
                     if len(text) >entities / float(len(text)) > self.max_entities:
                         # Skip sentence if too many entities (i.e. foreign script)
                         continue
-                yield text
+                # Get rid of extended Unicode characters, which are most likely
+                # there by accident
+                clean_text = text.replace(u'\t', u' ')
+                clean_text = filter(lambda c: ord(c) <= 65535, clean_text)
+                clean_text = filter(lambda c: not category(c).startswith('C'), clean_text)
+                if clean_text != text:
+                    self.logger.debug(u'Filtered text: `{}` -> `{}`'.format(
+                        text, clean_text))
+                yield clean_text + u'\n'
 
     @classmethod
     def child_parser(cls, subparsers):
