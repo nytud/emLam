@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parses the GATE output."""
+"""Manages a GATE server."""
 
 from __future__ import absolute_import, division, print_function
 from builtins import range
