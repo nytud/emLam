@@ -11,8 +11,7 @@ from emLam.utils import openall
 
 class Corpus(Component):
     """Base class for corpus objects."""
-    def __init__(self, max_lines):
-        super(Corpus, self).__init__()
+    def __init__(self, max_lines=None):
         self.max_lines = max_lines
 
     def instream(self, input_file):
@@ -20,11 +19,8 @@ class Corpus(Component):
 
     def outstream(self, output_file):
         if self.max_lines:
-            self.logger.info('MultiFileWriter for {}, {} lines / file.'.format(
-                output_file, self.max_lines))
             return MultiFileWriter(output_file, self.max_lines)
         else:
-            self.logger.info('Regular output file {}.'.format(output_file))
             return openall(output_file, 'wt')
 
     def files_to_streams(self, input_file, output_file):
