@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parses the GATE output."""
+"""Manages a GATE server."""
 
 from __future__ import absolute_import, division, print_function
 from builtins import range
@@ -9,7 +9,6 @@ from io import open, BytesIO, StringIO
 import os
 import re
 from subprocess import Popen
-import sys
 import time
 
 from lxml import etree
@@ -85,7 +84,6 @@ class Gate(object):
         self.__stop_server()
         self.__start_server()
 
-
     def parse(self, text, anas=False):
         """Parses a text with a running GATE server."""
         if not self.server:
@@ -113,7 +111,6 @@ class Gate(object):
         except:
             self.__stop_server()
             raise
-
 
     def __send_request(self, url):
         for tries in range(3):
