@@ -84,7 +84,7 @@ class CoreNLP(object):
         if not self.server:
             self.__start_server()
         with open('/dev/shm/text-{}'.format(os.getpid()), 'wt') as outf:
-            print(text, file=outf)
+            print(text.encode('utf-8'), file=outf)
 
         try:
             reply = self.__send_request(text)
