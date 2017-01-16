@@ -2,6 +2,8 @@
 """Corpus reader for the new Reuters corpus."""
 
 from __future__ import absolute_import, division, print_function
+from six.moves.html_parser import HTMLParser
+import sys
 
 from lxml import etree
 
@@ -9,11 +11,15 @@ from emLam.corpus.corpus_base import RawCorpus
 from emLam.utils import openall
 
 
-class Webcorpus(RawCorpus):
+binary_type = str if sys.version_info < (3,) else bytes
+
+
+class Reuters(RawCorpus):
     NAME = 'en_reuters'
+    html_parser = HTMLParser()
 
     def __init__(self, max_lines):
-        super(Webcorpus, self).__init__()
+        super(Reuters, self).__init__()
 
     def files_to_streams(self, input_file, output_file):
         """
@@ -30,22 +36,33 @@ class Webcorpus(RawCorpus):
         texts = []
         title = ''
         for event, node in etree.iterparse(input_stream, huge_tree=True,
-                                           events=['start', 'end']):
+                                           events=['start', 'end'],
+                                           resolve_entities=False):
             if event == 'start':
                 if node.tag == 'text':
                     in_text = True
             else:
                 if node.tag == 'title':
-                    title = node.text or ''
+                    title = self.__clean_text(node.text)
                 elif node.tag == 'text':
                     in_text = False
                     if node.text:
-                        texts = [node.text or ''] + texts
+                        texts = [self.__clean_text(node.text)] + texts
                 else:
                     if in_text:
-                        texts.append(node.text or '')
-                        texts.append(node.tail or '')
-        yield title + '\n\n' + ''.join(texts).decode('us-ascii').strip() + '\n\n'
+                        texts.append(self.__clean_text(node.text))
+                        texts.append(self.__clean_text(node.tail))
+        yield title + u'\n\n' + u''.join(texts).strip() + u'\n\n'
+
+    @staticmethod
+    def __clean_text(s):
+        if not s:
+            return u''
+        else:
+            s = s.decode('us-ascii') if type(s) == binary_type else s
+            s = Reuters.html_parser.unescape(s)
+            # s = s.replace('\n', ' ')
+            return s
 
     @classmethod
     def child_parser(cls, subparsers):

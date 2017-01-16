@@ -89,7 +89,7 @@ class CoreNLP(object):
         try:
             reply = self.__send_request(text)
             if reply:
-                return self.__split_result(reply)
+                return self.__split_result(reply.decode('utf-8'))
         except CoreNLPError as cnlpe:
             self.__stop_server()
             raise
@@ -101,7 +101,7 @@ class CoreNLP(object):
         for tries in range(3):
             try:
                 r = requests.post(self.url, params={'properties': self.props},
-                                  data=text)
+                                  data=text.encode('utf-8'))
                 if r.status_code != 200:
                     print(u'Server {} returned an illegal status code {}'.format(
                         self.url, r.status_code))
