@@ -9,6 +9,7 @@ from builtins import range
 import glob
 import os
 import re
+import sys
 import time
 
 import numpy as np
@@ -51,10 +52,11 @@ def parse_arguments():
                         help='the training batch size [100].')
     parser.add_argument('--num-nodes', '-N', type=int, default=200,
                         help='use how many RNN cells [200].')
-    parser.add_argument('--num-steps', '-s', type=int, default=20,
+    parser.add_argument('--num-steps', '-S', type=int, default=20,
                         help='how many steps to unroll the network for [20].')
-    parser.add_argument('--rnn-cell', '-C', choices=get_cell_types().keys(),
-                        default='lstm', help='the RNN cell to use [lstm].')
+    parser.add_argument('--rnn-cell', '-C', default='lstm',
+                        help='the RNN cell to use {{{}}} [lstm].'.format(
+                            get_cell_types().keys()))
     parser.add_argument('--layers', '-L', type=int, default=1,
                         help='the number of RNN laercell to use [lstm].')
     parser.add_argument('--dropout', '-D', type=float, default=1.0,
@@ -98,6 +100,10 @@ def parse_arguments():
     parser.add_argument('--testsm', default='Softmax',
                         help='the softmax loss alterative to use.')
     args = parser.parse_args()
+
+    if args.rnn_cell.split(',')[0] not in get_cell_types().keys():
+        parser.error('Cell type must be one of {{{}}}'.format(
+            get_cell_types().keys()))
 
     if args.decay_delay is None:
         args.decay_delay = args.epochs // 4 + 1
@@ -278,8 +284,9 @@ def main():
         last_epoch = init_or_load_session(sess, save_dir, saver, init)
         global_step = 0
         if not args.test_only:
+            print('Starting...', file=sys.stderr)
             print('Epoch {:2d}-                 valid PPL {:6.3f}'.format(
-                last_epoch, run_epoch(sess, mvalid, valid_data, 0)[0]))
+                last_epoch, run_epoch(sess, mvalid, valid_data, 0, verbose=10)[0]), file=sys.stderr)
 
             valid_ppls = []
             for epoch in range(last_epoch, args.epochs + 1):
@@ -291,7 +298,7 @@ def main():
                     global_step=global_step, writer=writer)
                 valid_perplexity, _ = run_epoch(sess, mvalid, valid_data)
                 print('Epoch {:2d} train PPL {:6.3f} valid PPL {:6.3f}'.format(
-                    epoch, train_perplexity, valid_perplexity))
+                    epoch, train_perplexity, valid_perplexity), file=sys.stderr)
                 saver.save(sess, os.path.join(save_dir, 'model'), epoch)
 
                 valid_ppls.append(valid_perplexity)
@@ -299,9 +306,9 @@ def main():
                 if stop_early(valid_ppls, args.early_stopping, save_dir):
                     break
 
-        print('Running evaluation...')
+        print('Running evaluation...', file=sys.stderr)
         test_perplexity, _ = run_epoch(sess, mtest, test_data)
-        print('Test perplexity: {:.3f}'.format(test_perplexity))
+        print('Test perplexity: {:.3f}'.format(test_perplexity), file=sys.stderr)
 
         writer.close()
 

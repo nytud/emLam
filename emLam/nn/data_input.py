@@ -23,7 +23,7 @@ class DataLoader(object):
         self.data_type = data_type
         self.vocab = self._read_vocab(vocab_file) if vocab_file else None
         # Subclass-specific to avoid copying all the arguments another N times
-        self.__init()
+        self._init()
 
     def _read_vocab(self, vocab_file):
         with openall(vocab_file) as inf:
@@ -33,14 +33,14 @@ class DataLoader(object):
     def __iter__(self):
         raise NotImplementedError('__iter__ must be implemented.')
 
-    def __init(self):
+    def _init(self):
         """The subclass must initialize epoch_size and the data setup here."""
         raise NotImplementedError('__init must be implemented.')
 
 
 class TxtDiskLoader(DataLoader):
     """Reads the text-files-per-batch format."""
-    def __init(self):
+    def _init(self):
         if not self.vocab:
             raise ValueError('TxtDiskLoader requires a vocabulary file.')
         self.queues = self._setup_queues(self.data_batches)
@@ -96,11 +96,27 @@ class TxtDiskLoader(DataLoader):
 
 class IntMemLoader(DataLoader):
     """Reads the int-array-in-memory format."""
-    def __init(self):
+    def _init(self):
         self.epoch_size = (self.data_len // self.batch_size - 1) // self.num_steps
         cropped_len = self.data_len // self.batch_size * self.batch_size
         self.data = np.load(self.header + '.npz')['data'][:cropped_len].reshape(
             self.batch_size, -1)
+
+    def __iter__(self):
+        num_steps = self.num_steps
+        for i in range(self.epoch_size):
+            start = i * num_steps
+            end = start + num_steps
+            yield self.data[:, start:end], self.data[:, start + 1:end + 1]
+
+
+class BatchIntMemLoader(DataLoader):
+    """Reads the int-array-in-memory format."""
+    def _init(self):
+        data = np.load(self.header + '.npz')['data']
+        self.batch_size = data.shape[0]
+        self.epoch_size = (data.shape[1] - 1) // self.num_steps
+        self.data = data[:, :self.epoch_size * self.num_steps + 1]
 
     def __iter__(self):
         num_steps = self.num_steps
@@ -122,9 +138,12 @@ def data_loader(header, batch_size, num_steps, one_hot=False,
         if fields[0] == 'TXT_DISK':
             cls = TxtDiskLoader
             data_batches = int(fields[1])
-        else:
+        elif fields[1] == 'INT_MEM':
             cls = IntMemLoader
             data_batches = 0
+        else:
+            cls = BatchIntMemLoader
+            data_batches = int(fields[1])
         data_len = int(fields[-1])
     return cls(header, batch_size, num_steps, data_len, data_batches, one_hot,
                data_type, vocab_file)

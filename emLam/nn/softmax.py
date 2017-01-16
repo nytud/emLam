@@ -56,7 +56,7 @@ class SamplingError(LossAndPrediction):
     """Common ancestor for the sampling error classes."""
     def loss_and_prediction(self, outputs, targets, loss_func):
         try:
-            num_sampled = int(self.kwargs['num_sampled'])
+            num_sampled = int(self.kwargs['num_samples'])
         except ValueError:
             raise ValueError('The number of samples must be an integer.')
         except KeyError:
