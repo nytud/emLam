@@ -65,7 +65,7 @@ def main():
     random.seed(seed)
     random.shuffle(data)
 
-    borders = [p for _, p in outputs]
+    borders = [p if p is not None else 100 for _, p in outputs]
     for i in range(len(borders) - 1, -1, -1):
         for j in range(len(borders) - 1, i, -1):
             borders[j] += borders[i]
