@@ -10,7 +10,7 @@ import re
 
 # Maximum length of a paragraph (longer P's break QunToken)
 __max_p_length = 60000
-__eos = re.compile(ur'[a-záéíóöőúüű]{4,}[.!?]+')
+__eos = re.compile(u'[a-záéíóöőúüű]{4,}[.!?]+')
 
 def split_for_qt(text, sep='\n\n'):
     """
