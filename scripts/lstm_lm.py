@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 from argparse import ArgumentParser
 from builtins import range
 import glob
+import logging
 import os
 import re
 import sys
@@ -22,6 +23,30 @@ from emLam.nn.rnn import get_cell_types
 from emLam.nn.softmax import get_loss_function
 
 TEST_STEPS = 1
+
+logger = None
+
+def setup_logger(logging_level):
+    logger = logging.getLogger('emLam')
+    # Remove old handlers 
+    while logger.handlers:
+        logger.removeHandler(logger.handlers[-1])
+
+    if logging_level:
+        log_level = getattr(logging, logging_level.upper())
+        # Set up root logger
+        logger.setLevel(log_level)
+        sh = logging.StreamHandler()
+        sh.setLevel(log_level)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        sh.setFormatter(formatter)
+        logger.addHandler(sh)
+    else:
+        # Don't log anything
+        logger.setLevel(logging.CRITICAL + 1)
+
+    return logger
 
 
 def get_sconfig(gpu_memory):
@@ -99,6 +124,9 @@ def parse_arguments():
                         help='the softmax loss alterative to use.')
     parser.add_argument('--testsm', default='Softmax',
                         help='the softmax loss alterative to use.')
+    parser.add_argument('--log-level', type=str, default=None,
+                        choices=['debug', 'info', 'warning', 'error', 'critical'],
+                        help='the logging level.')
     args = parser.parse_args()
 
     if args.rnn_cell.split(',')[0] not in get_cell_types().keys():
@@ -156,9 +184,11 @@ def run_epoch(session, model, data, epoch_size=0, verbose=0,
         costs += cost
         iters += model.params.num_steps
         if verbose and step % log_every == log_every - 1:
-            print("%.3f perplexity: %.3f speed: %.0f wps" %
-                  (step * 1.0 / epoch_size, np.exp(costs / iters),
-                   iters * model.params.batch_size / (time.time() - start_time)))
+            logger.debug(
+                "%.3f perplexity: %.3f speed: %.0f wps" %
+                (step * 1.0 / epoch_size, np.exp(costs / iters),
+                 iters * model.params.batch_size / (time.time() - start_time))
+            )
 
     # global_step is what the user sees, i.e. if the output is verbose, it is
     # increased, otherwise it isn't
@@ -188,9 +218,9 @@ def stop_early(valid_ppls, early_stop, save_dir):
         for checkpoint_to_delete in all_checkpoints[-early_stop:]:
             for file_to_delete in glob.glob(checkpoint_to_delete + '*'):
                 os.remove(file_to_delete)
-        print('Stopping training due to overfitting; deleted models ' +
-              'after {}'.format(
-                  all_checkpoints[-early_stop - 1].rsplit('-', 1)[-1]))
+        logger.info('Stopping training due to overfitting; deleted models ' +
+                    'after {}'.format(
+                        all_checkpoints[-early_stop - 1].rsplit('-', 1)[-1]))
         return True
     else:
         return False
@@ -201,13 +231,13 @@ def init_or_load_session(sess, save_dir, saver, init):
     checkpoint = tf.train.get_checkpoint_state(save_dir)
     if checkpoint and checkpoint.model_checkpoint_path:
         path = checkpoint.model_checkpoint_path
-        print('Load checkpoint', path)
+        logger.info('Load checkpoint', path)
         saver.restore(sess, path)
         epoch = int(re.search(r'-(\d+)$', path).group(1)) + 1
     else:
         if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
-        print('Randomly initialize variables')
+        logger.info('Randomly initialize variables')
         sess.run(init)
         epoch = 1
     return epoch
@@ -254,6 +284,9 @@ def main():
         args.testsm, params.hidden_size, params.vocab_size,
         test_batch, test_steps, params.data_type)
 
+    global logger
+    logger = setup_logger(args.log_level)
+
     with tf.Graph().as_default() as graph:
         # init_scale = 1 / math.sqrt(args.num_nodes)
         initializer = tf.random_uniform_initializer(
@@ -284,9 +317,9 @@ def main():
         last_epoch = init_or_load_session(sess, save_dir, saver, init)
         global_step = 0
         if not args.test_only:
-            print('Starting...', file=sys.stderr)
-            print('Epoch {:2d}-                 valid PPL {:6.3f}'.format(
-                last_epoch, run_epoch(sess, mvalid, valid_data, 0, verbose=10)[0]), file=sys.stderr)
+            logger.info('Starting...')
+            logger.info('Epoch {:2d}-                 valid PPL {:6.3f}'.format(
+                last_epoch, run_epoch(sess, mvalid, valid_data, 0, verbose=10)[0]))
 
             valid_ppls = []
             for epoch in range(last_epoch, args.epochs + 1):
@@ -297,8 +330,8 @@ def main():
                     sess, mtrain, train_data, 0, verbose=args.verbose,
                     global_step=global_step, writer=writer)
                 valid_perplexity, _ = run_epoch(sess, mvalid, valid_data)
-                print('Epoch {:2d} train PPL {:6.3f} valid PPL {:6.3f}'.format(
-                    epoch, train_perplexity, valid_perplexity), file=sys.stderr)
+                logger.info('Epoch {:2d} train PPL {:6.3f} valid PPL {:6.3f}'.format(
+                    epoch, train_perplexity, valid_perplexity))
                 saver.save(sess, os.path.join(save_dir, 'model'), epoch)
 
                 valid_ppls.append(valid_perplexity)
@@ -306,9 +339,9 @@ def main():
                 if stop_early(valid_ppls, args.early_stopping, save_dir):
                     break
 
-        print('Running evaluation...', file=sys.stderr)
+        logger.info('Running evaluation...')
         test_perplexity, _ = run_epoch(sess, mtest, test_data)
-        print('Test perplexity: {:.3f}'.format(test_perplexity), file=sys.stderr)
+        logger.info('Test perplexity: {:.3f}'.format(test_perplexity))
 
         writer.close()
 
