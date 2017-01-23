@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, division, print_function
 from configparser import RawConfigParser  # Should work under 2.7, too
+import logging
 # from future.moves.urllib.parse import urlencode
 import os
 from subprocess import Popen
@@ -26,6 +27,7 @@ class CoreNLP(object):
           - port, which is the port the CoreNLP server is on localhost;
           - memory, for the java process (the default is 4g).
         """
+        self.logger = logging.getLogger('emLam.CoreNLP')
         self.config = self.__load_config(corenlp_props)
         self.port = self.config.get('CoreNLP', 'port')
         self.url = 'http://localhost:{}'.format(self.port)
@@ -47,7 +49,7 @@ class CoreNLP(object):
         self.__stop_server()
 
     def __start_server(self):
-        print("Starting server {}".format(self.url))
+        self.logger.debug("Starting server {}...".format(self.url))
         # TODO eat the server's output -- in this case, there is no need to wait
         self.server = Popen(
             ['java', '-mx{}'.format(self.config.get('CoreNLP', 'memory')),
@@ -59,23 +61,23 @@ class CoreNLP(object):
         time.sleep(5)
         with open('/tmp/corenlp.shutdown.{}'.format(self.port)) as inf:
             self.shutdown_key = inf.read()
-        print("Started server {}".format(self.url))
+        self.logger.info("Started server {}".format(self.url))
 
     def __stop_server(self):
-        print("Stopping server? {}".format(self.url))
+        self.logger.debug("Stopping server? {}...".format(self.url))
         if self.server:
-            print("Stopping server {}".format(self.url))
+            sef.logger.debug("Stopping server {}...".format(self.url))
             try:
                 requests.post('{}/shutdown?key={}'.format(
                     self.url, self.shutdown_key))
             except:
                 raise
             self.server.communicate()
-            print("Stopped server {}".format(self.url))
+            sef.logger.info("Stopped server {}".format(self.url))
         self.server = None
 
     def __restart_server(self):
-        print('RESTART!')
+        sef.logger.debug("Restarting server {}...".format(self.url))
         self.__stop_server()
         self.__start_server()
 
@@ -103,12 +105,14 @@ class CoreNLP(object):
                 r = requests.post(self.url, params={'properties': self.props},
                                   data=text.encode('utf-8'))
                 if r.status_code != 200:
-                    print(u'Server {} returned an illegal status code {}'.format(
-                        self.url, r.status_code))
+                    self.logger.error(
+                        u'Server {} returned an illegal status code {}'.format(
+                            self.url, r.status_code))
                     r = None
             except Exception as e:
-                print(u'Exception {} while trying to access server {}'.format(
-                    e, self.url))
+                self.logger.exception(
+                    u'Exception {} while trying to access server {}'.format(
+                        e, self.url))
                 r = None
             if not r:
                 self.__restart_server()

@@ -82,7 +82,6 @@ class MNSZ2Corpus(RawCorpus):
                 if node.tag == 'p':
                     texts += self.__clean_text(node.text).split()
                 elif node.tag == 'div':
-                    # print(u' '.join(texts).encode('utf-8') + '\n')
                     yield u' '.join(texts) + u'\n\n'
 
     @staticmethod

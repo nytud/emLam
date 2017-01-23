@@ -132,7 +132,6 @@ def run_function(fn, params, processes=1, logging_level=None):
             return list(map(f, params))
         else:
             p = Pool(processes)
-            print(params)
             ret = p.map(f, params)
             p.close()
             p.join()

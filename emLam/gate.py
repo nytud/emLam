@@ -28,7 +28,7 @@ class GateError(Exception):
 class Gate(object):
     """hunlp-GATE interface object."""
     def __init__(self, gate_props, restart_every=None,
-                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode', logger=None):
+                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode'):
         """
         gate_props is the name of the GATE properties file. It is suppoesed to
         be in the hunlp-GATE directory.
@@ -38,7 +38,7 @@ class Gate(object):
         because it (hunlp-)GATE leaking memory like there is no tomorrow.
         """
         # Opt: ML3-SSTok
-        self.logger = logger or logging.getLogger('dummy')
+        self.logger = logging.getLogger('emLam.GATE')
         self.gate_props = gate_props
         self.gate_dir = os.path.dirname(gate_props)
         self.gate_url = self._gate_url()
@@ -174,8 +174,9 @@ def parse_gate_xml_file(xml_file, get_anas=False):
                                 try:
                                     a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
                                 except:
-                                    print(u'Strange ana {} / {} {} [{}]'.format(
-                                        ana, lemma, pos, annotation_id))
+                                    self.logger.exception(
+                                        u'Strange ana {} / {} {} [{}]'.format(
+                                            ana, lemma, pos, annotation_id))
                                     raise
                                 if a_pos == pos and a_lemma == lemma:
                                     # This is the right analysis
@@ -219,7 +220,8 @@ def parse_gate_xml_file_dom(xml_file, get_anas=False):
                         try:
                             a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
                         except:
-                            print(u'Strange ana {} / {} {}'.format(ana, lemma, pos))
+                            self.logger.exception(u'Strange ana {} / {} {}'.format(
+                                ana, lemma, pos))
                             raise
                         if a_pos == pos and a_lemma == lemma:
                             # This is the right analysis

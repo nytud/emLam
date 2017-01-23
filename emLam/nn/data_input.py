@@ -3,6 +3,7 @@
 
 """Data readers that processes the output of prepare_input.py."""
 
+import logging
 import math
 import sys
 
@@ -55,10 +56,12 @@ class TxtDiskLoader(DataLoader):
             raise ValueError('Not enough batch files ({} instead of {})'.format(
                 data_batches, self.batch_size))
         elif mod != 0:
-            print('The number of data files ({}) '.format(data_batches) +
-                  'is not compatible with the batch size ' +
-                  '({}). Only using the first '.format(self.batch_size) +
-                  '{} files.'.format(self.batch_size * div), file=sys.stderr)
+            logger.logging.getLogger('emLam').warning(
+                'The number of data files ({}) '.format(data_batches) +
+                'is not compatible with the batch size ' +
+                '({}). Only using the first '.format(self.batch_size) +
+                '{} files.'.format(self.batch_size * div)
+            )
 
         ext_str = digits_format_str(data_batches)
         queues = [[] for _ in range(self.batch_size)]
