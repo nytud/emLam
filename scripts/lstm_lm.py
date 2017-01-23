@@ -231,7 +231,7 @@ def init_or_load_session(sess, save_dir, saver, init):
     checkpoint = tf.train.get_checkpoint_state(save_dir)
     if checkpoint and checkpoint.model_checkpoint_path:
         path = checkpoint.model_checkpoint_path
-        logger.info('Load checkpoint', path)
+        logger.info('Load checkpoint {}'.format(path))
         saver.restore(sess, path)
         epoch = int(re.search(r'-(\d+)$', path).group(1)) + 1
     else:
