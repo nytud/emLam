@@ -66,6 +66,70 @@ def field_pos_inf(fields):
         return ['OTHER']
 
 
+def field_lemma_deriv_kr(fields):
+    """ lemma_deriv k r"""
+    kr = fields[2]
+    parts = kr.rsplit('/')
+    to_add = []
+    if len(parts) > 1:
+        for p in range(len(parts[:-1]) - 1, -1, -1):
+            if '[COMPAR]' in parts[p]:
+                to_add.append('<COMPAR>')
+                del parts[p]
+            elif '[COMPAR_DESIGN]' in parts[p]:
+                to_add.append('<COMPAR>')
+                to_add.append('<DESIGN>')
+                del parts[p]
+            elif '[SUPERLAT]' in parts[p]:
+                to_add.append('<SUPERLAT>')
+                del parts[p]
+            elif '[SUPERLAT_DESIGN]' in parts[p]:
+                to_add.append('<SUPERLAT>')
+                to_add.append('<DESIGN>')
+                del parts[p]
+            elif '[ORD]' in parts[p]:
+                to_add.append('<ORD>')
+                del parts[p]
+
+    if len(parts) > 1:
+        ret = [fields[1] + '_' + '/'.join(parts[:-1])]
+    else:
+        ret = [fields[1]]
+
+    for false_deriv in to_add:
+        ret.append(false_deriv)
+
+    last_index = parts[-1].find('<')
+    if last_index > 0:
+        while True:
+            index = parts[-1].find('><', last_index)
+            if index > 0:
+                ret.append(parts[-1][last_index:index + 1])
+                last_index = index + 1
+            else:
+                ret.append(parts[-1][last_index:])
+                break
+    return ret
+
+
+def field_pos_kr(fields):
+    kr = fields[2]
+    last_index = kr.find('<')
+    if last_index > 0:
+        ret = [kr[:last_index]]
+        while True:
+            index = kr.find('><', last_index)
+            if index > 0:
+                ret.append(kr[last_index:index + 1])
+                last_index = index + 1
+            else:
+                ret.append(kr[last_index:])
+                break
+        return ret
+    else:
+        return [kr]
+
+
 def field_lemma_inf(fields):
     """
     For universal dependencies returned by GATE: ~lemmad_krs.
