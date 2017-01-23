@@ -66,18 +66,18 @@ class CoreNLP(object):
     def __stop_server(self):
         self.logger.debug("Stopping server? {}...".format(self.url))
         if self.server:
-            sef.logger.debug("Stopping server {}...".format(self.url))
+            self.logger.debug("Stopping server {}...".format(self.url))
             try:
                 requests.post('{}/shutdown?key={}'.format(
                     self.url, self.shutdown_key))
             except:
                 raise
             self.server.communicate()
-            sef.logger.info("Stopped server {}".format(self.url))
+            self.logger.info("Stopped server {}".format(self.url))
         self.server = None
 
     def __restart_server(self):
-        sef.logger.debug("Restarting server {}...".format(self.url))
+        self.logger.debug("Restarting server {}...".format(self.url))
         self.__stop_server()
         self.__start_server()
 

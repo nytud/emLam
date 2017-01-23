@@ -157,7 +157,7 @@ def run_queued(fn, params, processes=1, queued_params=None, logging_level=None):
         queue.put_nowait(qp)
 
     with __configure_logging(fn, processes, logging_level, queue=queue) as f:
-        #f = partial(fn, queue=queue)
+        # f = partial(fn, queue=queue)
         if processes == 1:
             ret = list(map(f, params))
         else:
@@ -172,7 +172,7 @@ def run_queued(fn, params, processes=1, queued_params=None, logging_level=None):
 def setup_logger(logging_level, logging_queue, name='script'):
     """Setups logging for scripts."""
     logger = logging.getLogger('emLam')
-    # Remove old handlers 
+    # Remove old handlers
     while logger.handlers:
         logger.removeHandler(logger.handlers[-1])
 

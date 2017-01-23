@@ -5,7 +5,6 @@
 
 import logging
 import math
-import sys
 
 import numpy as np
 
@@ -56,7 +55,7 @@ class TxtDiskLoader(DataLoader):
             raise ValueError('Not enough batch files ({} instead of {})'.format(
                 data_batches, self.batch_size))
         elif mod != 0:
-            logger.logging.getLogger('emLam').warning(
+            logging.getLogger('emLam').warning(
                 'The number of data files ({}) '.format(data_batches) +
                 'is not compatible with the batch size ' +
                 '({}). Only using the first '.format(self.batch_size) +

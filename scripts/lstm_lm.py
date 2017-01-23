@@ -10,7 +10,6 @@ import glob
 import logging
 import os
 import re
-import sys
 import time
 
 import numpy as np
@@ -28,7 +27,7 @@ logger = None
 
 def setup_logger(logging_level):
     logger = logging.getLogger('emLam')
-    # Remove old handlers 
+    # Remove old handlers
     while logger.handlers:
         logger.removeHandler(logger.handlers[-1])
 

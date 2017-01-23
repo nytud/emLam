@@ -147,6 +147,7 @@ def parse_gate_xml_file(xml_file, get_anas=False):
     if the analysis for a word is too long. Much uglier than the dom-based
     solution, but what can one do?
     """
+    logger = logging.getLogger('emLam.GATE')
     text, sent = [], []
     token_feats = {'string': 0, 'lemma': 1, 'hfstana': 2}
     if get_anas:
@@ -174,7 +175,7 @@ def parse_gate_xml_file(xml_file, get_anas=False):
                                 try:
                                     a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
                                 except:
-                                    self.logger.exception(
+                                    logger.exception(
                                         u'Strange ana {} / {} {} [{}]'.format(
                                             ana, lemma, pos, annotation_id))
                                     raise
@@ -204,6 +205,7 @@ def parse_gate_xml_file(xml_file, get_anas=False):
 
 def parse_gate_xml_file_dom(xml_file, get_anas=False):
     """Parses a GATE response from a file."""
+    logger = logging.getLogger('emLam.GATE')
     dom = etree.parse(xml_file)
     root = dom.getroot()
     text, sent = [], []
@@ -220,7 +222,7 @@ def parse_gate_xml_file_dom(xml_file, get_anas=False):
                         try:
                             a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
                         except:
-                            self.logger.exception(u'Strange ana {} / {} {}'.format(
+                            logger.exception(u'Strange ana {} / {} {}'.format(
                                 ana, lemma, pos))
                             raise
                         if a_pos == pos and a_lemma == lemma:
