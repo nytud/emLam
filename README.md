@@ -19,3 +19,12 @@ pip install -r requirements_gpu.txt
 # In every other case
 pip install -r requirements.txt
 ```
+The [emLam corpus](http://hlt.bme.hu/en/resources/emLam), a specially prepared
+version of the Hungarian Webcorpus, is available from http://hlt.bme.hu/en/resources/emLam.
+
+If you use the repository or the corpus in your project, please cite the following
+paper:
+
+Dávid Márk Nemeskey 2017. \texttt{emLam} – a Hungarian Language Modeling
+baseline. In _Proceedings of the 13th Conference on Hungarian Computational
+Linguistics (MSZNY 2017)_. [(bib here)](http://hlt.bme.hu/en/publ/emLam)
