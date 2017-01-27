@@ -24,9 +24,9 @@ def parse_arguments():
                         help='the target directory.')
     parser.add_argument('--lower', '-l', action='store_true',
                         help='lowercase the word and lemma.')
-    parser.add_argument('--field', '-f', default=None,
-                        choices=sorted(list_field_functions()),
-                        help='the field section function.')
+    parser.add_argument('--field', '-f', default=None, required=True,
+                        help='the field section function {{{}}}.'.format(
+                            ', '.join(sorted(list_field_functions()) + ['0-'])))
     parser.add_argument('--processes', '-p', type=int, default=1,
                         help='the number of processes to use parallelly [1].')
     parser.add_argument('--log-level', '-L', type=str, default=None,

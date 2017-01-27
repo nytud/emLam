@@ -187,7 +187,10 @@ def _get_field_selectors():
 
 
 def get_field_function(field):
-    return _get_field_selectors()['field_' + field]
+    if field.isdigit():
+        return itemgetter(int(field))
+    else:
+        return _get_field_selectors()['field_' + field]
 
 
 def list_field_functions():
