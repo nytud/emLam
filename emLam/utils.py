@@ -202,3 +202,18 @@ class AttrDict(dict):
         if key not in self:
             raise AttributeError('key {} missing'.format(key))
         self[key] = value
+
+
+def read_conll(instream):
+    """A generator that returns the sentences from a conll file."""
+    sentence = []
+    for line in instream:
+        l = line.strip()
+        if len(l) == 0:  # EoS
+            yield sentence
+            sentence = []
+        else:
+            sentence.append(l.split(u'\t'))
+    else:
+        if len(sentence) > 0:
+            yield sentence
