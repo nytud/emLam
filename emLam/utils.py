@@ -217,3 +217,8 @@ def read_conll(instream):
     else:
         if len(sentence) > 0:
             yield sentence
+
+
+def write_conll(sentence, outstream):
+    print(u'\n'.join(u'\t'.join(word) for word in sentence) + '\n',
+          file=outstream)
