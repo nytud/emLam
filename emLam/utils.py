@@ -98,16 +98,17 @@ def source_target_file_list(source_dir, target_dir):
 @contextmanager
 def __configure_logging(fn, processes, logging_level, **kwargs):
     if logging_level:
+        log_level = __get_logging_level(logging_level)
         logging_queue = Queue() if processes == 1 else Manager().Queue()
         sh = logging.StreamHandler()
-        sh.setLevel(logging_level)
+        sh.setLevel(log_level)
         process_log = '(%(process)d)' if processes > 1 else ''
         f = logging.Formatter(
             '%(asctime)s %(levelname)s %(name)s{} %(message)s'.format(process_log))
         sh.setFormatter(f)
         ql = QueueListener(logging_queue, sh)
         ql.start()
-        f = partial(fn, logging_level=logging_level,
+        f = partial(fn, logging_level=log_level,
                     logging_queue=logging_queue, **kwargs)
     else:
         f = partial(fn, **kwargs)
@@ -171,16 +172,26 @@ def run_queued(fn, params, processes=1, queued_params=None, logging_level=None):
 
 
 def setup_queue_logger(logging_level, logging_queue, name='script'):
+    """Sets a queue logger up."""
     qh = QueueHandler(logging_queue)
     return setup_logger(logging_level, qh, name)
 
 
 def setup_stream_logger(logging_level, name='script'):
+    """Sets a stream logger up."""
     sh = logging.StreamHandler()
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     sh.setFormatter(formatter)
     return setup_logger(logging_level, sh, name)
+
+
+def __get_logging_level(logging_level):
+    """Returns the logging level that corresponds to the parameter string."""
+    if isinstance(logging_level, basestring):
+        return getattr(logging, logging_level.upper())
+    else:
+        return logging_level
 
 
 def setup_logger(logging_level, handler, name='script'):
@@ -191,10 +202,7 @@ def setup_logger(logging_level, handler, name='script'):
         logger.removeHandler(logger.handlers[-1])
 
     if logging_level:
-        if isinstance(logging_level, basestring):
-            log_level = getattr(logging, logging_level.upper())
-        else:
-            log_level = logging_level
+        log_level = __get_logging_level(logging_level)
         # Set up root logger
         handler.setLevel(log_level)
         logger.addHandler(handler)
