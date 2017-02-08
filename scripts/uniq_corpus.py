@@ -14,7 +14,10 @@ from argparse import ArgumentParser
 from operator import itemgetter
 import os
 
-from emLam.utils import openall, read_conll, source_target_file_list, write_conll
+from emLam.utils import (
+    openall, read_conll, setup_stream_logger,
+    source_target_file_list, write_conll
+)
 
 
 def parse_arguments():
@@ -37,6 +40,9 @@ def parse_arguments():
     parser.add_argument('--field', '-f', type=int, default=0,
                         help='the (zero-based) index of the column used for '
                              'determining which lines match [0].')
+    parser.add_argument('--log-level', '-L', type=str, default=None,
+                        choices=['debug', 'info', 'warning', 'error', 'critical'],
+                        help='the logging level.')
 
     args = parser.parse_args()
     return args
@@ -48,23 +54,29 @@ def main():
     if not os.path.isdir(args.target_dir):
         os.makedirs(args.target_dir)
 
+    logger = setup_stream_logger(args.log_level)
     source_target_files = source_target_file_list(
         args.source_dir, args.target_dir)
 
     seen = set()
     for sf, tf in source_target_files:
-        print(sf, tf)
-        tf_empty = True
+        logger.info('Processing {}...'.format(sf))
+        s_read, s_written = 0, 0
         with openall(sf) as inf, openall(tf, 'wt') as outf:
             for sentence in read_conll(inf):
+                s_read += 1
                 key = u' '.join(map(itemgetter(args.field), sentence))
                 if key not in seen:
                     seen.add(key)
-                    tf_empty = False
                     write_conll(sentence, outf)
+                    s_written += 1
         # Delete target file if it consists entirely of duplicate sentences
-        if tf_empty:
+        if s_written == 0:
             os.remove(tf)
+        logger.info('Processed {}: read {} sentences; written {}.'.format(
+            sf, s_read, s_written))
+
+    logger.info('Done; found {} unique sentences.'.format(len(seen)))
 
 
 if __name__ == '__main__':

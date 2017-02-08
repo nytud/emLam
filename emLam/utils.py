@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, division, print_function
 from builtins import map
+from past.builtins import basestring
 from contextlib import contextmanager
 import bz2
 from functools import partial
@@ -169,7 +170,20 @@ def run_queued(fn, params, processes=1, queued_params=None, logging_level=None):
     return ret
 
 
-def setup_logger(logging_level, logging_queue, name='script'):
+def setup_queue_logger(logging_level, logging_queue, name='script'):
+    qh = QueueHandler(logging_queue)
+    return setup_logger(logging_level, qh, name)
+
+
+def setup_stream_logger(logging_level, name='script'):
+    sh = logging.StreamHandler()
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    sh.setFormatter(formatter)
+    return setup_logger(logging_level, sh, name)
+
+
+def setup_logger(logging_level, handler, name='script'):
     """Setups logging for scripts."""
     logger = logging.getLogger('emLam')
     # Remove old handlers
@@ -177,17 +191,21 @@ def setup_logger(logging_level, logging_queue, name='script'):
         logger.removeHandler(logger.handlers[-1])
 
     if logging_level:
+        if isinstance(logging_level, basestring):
+            log_level = getattr(logging, logging_level.upper())
+        else:
+            log_level = logging_level
         # Set up root logger
-        logger.setLevel(logging_level)
-        qh = QueueHandler(logging_queue)
-        qh.setLevel(logging_level)
-        logger.addHandler(qh)
+        handler.setLevel(log_level)
+        logger.addHandler(handler)
     else:
         # Don't log anything
-        logger.setLevel(logging.CRITICAL + 1)
+        log_level = logging.CRITICAL + 1
+    logger.setLevel(log_level)
 
+    # Set up the specific logger requested
     logger = logging.getLogger('emLam.' + name)
-    logger.setLevel(logger.parent.level)
+    logger.setLevel(log_level)
     return logger
 
 
