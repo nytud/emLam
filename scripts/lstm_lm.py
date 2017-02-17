@@ -9,7 +9,6 @@ from builtins import range
 import glob
 import logging
 import os
-import re
 import time
 
 import numpy as np
@@ -20,6 +19,7 @@ from emLam.nn.data_input import data_loader
 from emLam.nn.lstm_model import LSTMModel
 from emLam.nn.rnn import get_cell_types
 from emLam.nn.softmax import get_loss_function
+from emLam.nn.utils import init_or_load_session
 
 TEST_STEPS = 1
 
@@ -223,23 +223,6 @@ def stop_early(valid_ppls, early_stop, save_dir):
         return True
     else:
         return False
-
-
-def init_or_load_session(sess, save_dir, saver, init):
-    """Initiates or loads a session."""
-    checkpoint = tf.train.get_checkpoint_state(save_dir)
-    if checkpoint and checkpoint.model_checkpoint_path:
-        path = checkpoint.model_checkpoint_path
-        logger.info('Load checkpoint {}'.format(path))
-        saver.restore(sess, path)
-        epoch = int(re.search(r'-(\d+)$', path).group(1)) + 1
-    else:
-        if not os.path.isdir(save_dir):
-            os.makedirs(save_dir)
-        logger.info('Randomly initialize variables')
-        sess.run(init)
-        epoch = 1
-    return epoch
 
 
 def main():
