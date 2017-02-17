@@ -11,7 +11,7 @@ import os
 
 from emLam import WORD, LEMMA
 from emLam.conversions import get_field_function, list_field_functions
-from emLam.utils import openall, run_function, setup_logger, source_target_file_list
+from emLam.utils import openall, run_function, setup_queue_logger, source_target_file_list
 
 
 def parse_arguments():
@@ -38,8 +38,6 @@ def parse_arguments():
         parser.error('Source and target directories must differ.')
     if args.processes <= 0:
         parser.error('The number of processes must be >= 1.')
-    if args.log_level:
-        args.log_level = getattr(logging, args.log_level.upper())
     return args
 
 
@@ -47,7 +45,7 @@ def convert(source_target_file, field_fun, lowercase,
             logging_level=None, logging_queue=None):
     # TODO: all logging-related code to utils (with annotations)
     source_file, target_file = source_target_file
-    logger = setup_logger(logging_level, logging_queue)
+    logger = setup_queue_logger(logging_level, logging_queue)
 
     logger.info('Started processing {}'.format(source_file))
     with openall(source_file) as inf, openall(target_file, 'wt') as outf:
