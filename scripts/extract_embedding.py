@@ -67,17 +67,20 @@ def main():
         'Softmax', params.hidden_size, params.vocab_size, 1, 1, params.data_type)
 
     with tf.Graph().as_default() as graph:
-        model = LSTMModel(params, is_training=False, softmax=testsm)
-        saver = tf.train.Saver(name='saver')
+        initializer = tf.random_uniform_initializer(-0.1, 0.1)
+        with tf.variable_scope("Model", reuse=None, initializer=initializer):
+            model = LSTMModel(params, is_training=False, softmax=None)
+        with tf.variable_scope("Model", reuse=True):
+            embedding = tf.get_variable(
+                'embedding', [params.vocab_size, params.hidden_size],
+                dtype=params.data_type)
+        with tf.name_scope('Global_ops'):
+            saver = tf.train.Saver(name='saver')
 
     with tf.Session(graph=graph) as session:
         save_dir = os.path.join('saves', args.model_name)
         init_or_load_session(session, save_dir, saver)
-        embedding = tf.get_variable(
-            'embedding', [params.vocab_size, params.hidden_size],
-            dtype=params.data_type)
         np_embedding = session.run(embedding)
-        print(np_embedding.shape)
 
 if __name__ == '__main__':
     main()
