@@ -7,7 +7,6 @@ from __future__ import absolute_import, division, print_function
 from argparse import ArgumentParser
 from builtins import range
 import glob
-import logging
 import os
 import re
 import time
@@ -15,7 +14,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from emLam.utils import AttrDict
+from emLam.utils import AttrDict, setup_stream_logger
 from emLam.nn.data_input import data_loader
 from emLam.nn.lstm_model import LSTMModel
 from emLam.nn.rnn import get_cell_types
@@ -24,28 +23,6 @@ from emLam.nn.softmax import get_loss_function
 TEST_STEPS = 1
 
 logger = None
-
-def setup_logger(logging_level):
-    logger = logging.getLogger('emLam')
-    # Remove old handlers
-    while logger.handlers:
-        logger.removeHandler(logger.handlers[-1])
-
-    if logging_level:
-        log_level = getattr(logging, logging_level.upper())
-        # Set up root logger
-        logger.setLevel(log_level)
-        sh = logging.StreamHandler()
-        sh.setLevel(log_level)
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        sh.setFormatter(formatter)
-        logger.addHandler(sh)
-    else:
-        # Don't log anything
-        logger.setLevel(logging.CRITICAL + 1)
-
-    return logger
 
 
 def get_sconfig(gpu_memory):
@@ -284,7 +261,7 @@ def main():
         test_batch, test_steps, params.data_type)
 
     global logger
-    logger = setup_logger(args.log_level)
+    logger = setup_stream_logger(args.log_level)
 
     with tf.Graph().as_default() as graph:
         # init_scale = 1 / math.sqrt(args.num_nodes)

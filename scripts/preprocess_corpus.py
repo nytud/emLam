@@ -14,7 +14,7 @@ import os.path as op
 from queue import Empty
 
 from emLam.corpus import get_all_corpora, get_all_preprocessors
-from emLam.utils import run_queued, setup_logger
+from emLam.utils import run_queued, setup_queue_logger
 
 
 def parse_arguments():
@@ -44,8 +44,6 @@ def parse_arguments():
         parser.error('Source and target directories must differ.')
     args.corpus = corpora[args.corpus]
     args.preprocessor = get_all_preprocessors()[args.preprocessor]
-    if args.log_level:
-        args.log_level = getattr(logging, args.log_level.upper())
 
     return args
 
@@ -83,7 +81,7 @@ def source_target_file_list(source_dir, target_dir):
 def process_file(components, queue, logging_level=None, logging_queue=None):
     corpus_cls, preprocessor_cls, pid, args = components
     # First set up the logger used by the corpus and the preprocessor
-    logger = setup_logger(logging_level, logging_queue)
+    logger = setup_queue_logger(logging_level, logging_queue)
 
     # Then we can instantiate the objects that do the actual work
     corpus = corpus_cls.instantiate(pid, **args)
