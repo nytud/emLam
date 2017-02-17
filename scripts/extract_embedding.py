@@ -78,3 +78,6 @@ def main():
             dtype=params.data_type)
         np_embedding = session.run(embedding)
         print(np_embedding.shape)
+
+if __name__ == '__main__':
+    main()
