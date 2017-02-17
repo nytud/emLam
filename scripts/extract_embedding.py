@@ -51,5 +51,6 @@ def main():
                 print('{} {}'.format(vocab[i], ' '.join(str(n) for n in em[i])),
                       file=outf)
 
+
 if __name__ == '__main__':
     main()
