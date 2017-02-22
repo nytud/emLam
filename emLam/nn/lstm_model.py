@@ -52,7 +52,7 @@ class LSTMModel(object):
         rnn_cell = get_rnn(self.params.rnn_cell, self.params.hidden_size)
         if self.is_training and self.params.dropout < 1:
             rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
-                rnn_cell, output_dropout=self.params.dropout)
+                rnn_cell, output_keep_prob=self.params.dropout)
         cell = tf.nn.rnn_cell.MultiRNNCell(
             [rnn_cell] * self.params.num_layers, state_is_tuple=True)
 

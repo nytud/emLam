@@ -178,7 +178,7 @@ def main():
     args, config = parse_arguments()
 
     network_params = AttrDict(config['Network'])
-    network_params.data_type = tf.float32
+    network_params['data_type'] = tf.float32
     train_params = AttrDict(config['Training'])
     train_params.update(network_params)
     valid_params = AttrDict(config['Validation'])
@@ -190,15 +190,15 @@ def main():
     if args.train:
         train_data = data_loader(args.train, train_params.batch_size,
                                  train_params.num_steps, vocab_file=args.vocab)
-        train_params.vocab_size = len(train_data.vocab)
+        train_params['vocab_size'] = len(train_data.vocab)
         trainsm = get_loss_function(
             train_params.softmax, train_params.hidden_size,
             train_params.vocab_size, train_params.batch_size,
             train_params.num_steps, train_params.data_type)
     if args.valid:
-        valid_data = data_loader(args.valid, args.batch_size, args.num_steps,
-                                 vocab_file=args.vocab)
-        valid_params.vocab_size = len(valid_data.vocab)
+        valid_data = data_loader(args.valid, valid_params.batch_size,
+                                 valid_params.num_steps, vocab_file=args.vocab)
+        valid_params['vocab_size'] = len(valid_data.vocab)
         validsm = get_loss_function(
             valid_params.softmax, valid_params.hidden_size,
             valid_params.vocab_size, valid_params.batch_size,
@@ -206,9 +206,9 @@ def main():
     if args.test:
         test_data = data_loader(args.test, test_params.batch_size,
                                 test_params.num_steps, vocab_file=args.vocab)
-        test_params.vocab_size = len(test_data.vocab)
+        test_params['vocab_size'] = len(test_data.vocab)
         testsm = get_loss_function(
-            test_params.testsm, test_params.hidden_size,
+            test_params.softmax, test_params.hidden_size,
             test_params.vocab_size, test_params.batch_size,
             test_params.num_steps, test_params.data_type)
 
