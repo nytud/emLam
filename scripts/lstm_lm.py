@@ -220,17 +220,20 @@ def main():
         initializer = tf.random_uniform_initializer(
             -network_params.init_scale, network_params.init_scale)
 
+        reuse = None
         if args.train:
             with tf.name_scope('Train'):
-                with tf.variable_scope("Model", reuse=None, initializer=initializer):
+                with tf.variable_scope("Model", reuse=reuse, initializer=initializer):
                     mtrain = LSTMModel(train_params, is_training=True, softmax=trainsm)
+            reuse = True
         if args.valid:
             with tf.name_scope('Valid'):
-                with tf.variable_scope("Model", reuse=True, initializer=initializer):
+                with tf.variable_scope("Model", reuse=reuse, initializer=initializer):
                     mvalid = LSTMModel(valid_params, is_training=False, softmax=validsm)
+            reuse = True
         if args.test:
             with tf.name_scope('Test'):
-                with tf.variable_scope("Model", reuse=not args.test_only,
+                with tf.variable_scope("Model", reuse=reuse,
                                        initializer=initializer):
                     mtest = LSTMModel(test_params, is_training=False, softmax=testsm)
         with tf.name_scope('Global_ops'):
