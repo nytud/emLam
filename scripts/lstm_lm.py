@@ -34,7 +34,7 @@ def get_sconfig(gpu_params):
     params = {}
     # params = {'log_device_placement': True}
     if gpu_params:
-        params['gpu_options'] = tf.GPUOptions(*gpu_params)
+        params['gpu_options'] = tf.GPUOptions(**gpu_params)
     return tf.ConfigProto(**params)
 
 
@@ -258,9 +258,9 @@ def main():
                     last_epoch, run_epoch(sess, mvalid, valid_data, 0, verbose=10)[0]))
 
             valid_ppls = []
-            for epoch in range(last_epoch, args.epochs + 1):
-                lr_decay = args.lr_decay ** max(epoch - args.decay_delay, 0.0)
-                mtrain.assign_lr(sess, args.learning_rate * lr_decay)
+            for epoch in range(last_epoch, train_params.epochs + 1):
+                lr_decay = train_params.lr_decay ** max(epoch - train_params.decay_delay, 0.0)
+                mtrain.assign_lr(sess, train_params.learning_rate * lr_decay)
 
                 train_perplexity, global_step = run_epoch(
                     sess, mtrain, train_data, 0, verbose=args.verbose,
