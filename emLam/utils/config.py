@@ -53,7 +53,7 @@ def load_config(config_file, schema, postprocessing=None):
 
     for sections, key in configobj.get_extra_values(config):
         warnings.append('Undefined key {}'.format(
-            '.'.join((chain((*sections, key))))))
+            '.'.join((chain(sections, [key])))))
     for sections, key, error in configobj.flatten_errors(config, results):
         errors.append('{}: {}'.format('.'.join((chain((*sections, key)))), error))
     return config, warnings, errors
