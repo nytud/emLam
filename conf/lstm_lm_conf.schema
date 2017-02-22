@@ -52,6 +52,8 @@ softmax = option('Softmax', 'NceLoss', 'SampledSoftmax', default=Softmax)
 # Note that during evaluation, a full softmax is run!
 # The test batch size.
 batch_size = integer(min=1, default=20)
+# How many steps to unroll the network for.
+num_steps = integer(min=1, default=1)
 # The Softmax loss alternative to use.
 softmax = option('Softmax', 'NceLoss', 'SampledSoftmax', default=Softmax)
 
