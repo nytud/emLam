@@ -50,9 +50,9 @@ class LSTMModel(object):
         # different than reported in the paper.
         # D: Not really...
         rnn_cell = get_rnn(self.params.rnn_cell, self.params.hidden_size)
-        if self.is_training and self.params.keep_prob < 1:
+        if self.is_training and self.params.dropout < 1:
             rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
-                rnn_cell, output_keep_prob=self.params.keep_prob)
+                rnn_cell, output_dropout=self.params.dropout)
         cell = tf.nn.rnn_cell.MultiRNNCell(
             [rnn_cell] * self.params.num_layers, state_is_tuple=True)
 
@@ -72,8 +72,8 @@ class LSTMModel(object):
                                 dtype=self.params.data_type)
             # tf.unpack(inputs, axis=1) only needed for rnn, not dynamic_rnn
 
-        if self.is_training and self.params.keep_prob < 1:
-            inputs = tf.nn.dropout(inputs, self.params.keep_prob)
+        if self.is_training and self.params.dropout < 1:
+            inputs = tf.nn.dropout(inputs, self.params.dropout)
 
         # Simplified version of tensorflow.models.rnn.rnn.py's rnn().
         # This builds an unrolled LSTM for tutorial purposes only.
