@@ -56,7 +56,9 @@ setup(name='emlam',
           'future', 'six',
           # Communication with GATE; an earlier lxml version is broken, but
           # I don't know which; >=3.6 might be enough.
-          'requests', 'lxml>=3.6.4'
+          'requests', 'lxml>=3.6.4',
+          # Better configuration files.
+          'configobj'
       ],
       # TODO Could use entry_points for corpora / preprocessors and console_scripts
       # zip_safe=False,

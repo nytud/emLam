@@ -1,0 +1,49 @@
+[Network]
+# The name of the model.
+model_name = string(default="")
+# Use how many RNN cells.
+hidden_size= integer(min=0, default=200)
+# The RNN cell to use {gru, lstm, lstmp:<proj>}.
+rnn_cell = string(default="lstm")
+# The number of layers.
+num_layers = integer(min=1, default=1)
+# Whether to compute an embedding as well.
+embedding = boolean(default=yes)
+# The file to load the embedding from. If not specified (the default), a new one is computed.
+embedding_file = string(default="")
+# Whether the embedding is trainable. Should be `True` (the default) if `embedding_file` is not specified.
+embedding_trainable = boolean(default=yes)
+# The keep probability of dropout; if 0, no dropout is applied.
+dropout = float(min=0, max=1, default=0)
+
+[Training]
+# The training batch size.
+batch_size = integer(min=1, default=20)
+# How many steps to unroll the network for.
+num_steps = integer(min=1, default=20)
+# The default number of epochs.
+epochs = integer(min=1, default=20)
+# The number of batches processed in an epoch. If 0 (the default), the whole data is processed in an epoch.
+epoch_size = integer(min=0, default=0)
+# The starting learning rate.
+learning_rate = float(min=0, default=1)
+# The learning rate decay.
+lr_decay = float(default=0.5)
+# Keep the learning rate constant for this many epochs. The default (at -1) is epochs // 4 + 1.
+decay_delay = integer(min=-1, default=-1)
+# The initial scale of the weights.
+init_scale = float(min=0, default=0.1)
+# The limit for gradient clipping.
+max_grad_norm = float(min=0, default=0)
+# The Softmax loss alternative to use {.
+softmax = option('Softmax', 'NceLoss', 'SampledSoftmax', default=Softmax)
+# Early stop after the perplexity has been detoriating after this many steps. If 0 (the default), do not stop early.
+early_stopping = integer(min=0, default=0)
+
+[Evaluation]
+# The test batch size.
+batch_size = integer(min=1, default=20)
+
+[GPU]
+# All entries in this section (e.g. `per_process_gpu_memory_fraction`) are added to the TF `Session`'s `gpu_options`.
+per_process_gpu_memory_fraction = float(min=0, max=1, default=1)
