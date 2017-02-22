@@ -12,6 +12,8 @@ import os
 import time
 
 import numpy as np
+# To get rid of stupid tensorflow logging. Works from version 0.12.1+.
+os.environ['TF_CPP_MIN_LOG_LEVEL']='3'  # noqa
 import tensorflow as tf
 
 from emLam.utils import AttrDict, setup_stream_logger
@@ -22,7 +24,6 @@ from emLam.nn.rnn import get_cell_types
 from emLam.nn.softmax import get_loss_function
 from emLam.nn.utils import init_or_load_session, load_session
 
-TEST_STEPS = 1
 
 logger = None
 
