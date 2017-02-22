@@ -11,4 +11,4 @@ same configuration file for various input corpora.
 
 As usual, the command line parameters are explained in the script's usage
 description (`-h`). The options in the configuration file can be found in
-[the schema](conf/lstm_lm_conf.schema).
+[the schema](../conf/lstm_lm_conf.schema).
