@@ -13,6 +13,7 @@ import time
 
 import numpy as np
 # To get rid of stupid tensorflow logging. Works from version 0.12.1+.
+# See https://github.com/tensorflow/tensorflow/issues/1258
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'  # noqa
 import tensorflow as tf
 
