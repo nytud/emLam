@@ -273,7 +273,7 @@ def main():
                     valid_ppl = '{:6.3f}'.format(valid_perplexity)
                 else:
                     valid_ppl = 'N/A'
-                logger.info('Epoch {:2d} train PPL {:6.3f} valid PPL {:6.3f}'.format(
+                logger.info('Epoch {:2d} train PPL {:6.3f} valid PPL {}'.format(
                     epoch, train_perplexity, valid_ppl))
                 saver.save(sess, os.path.join(save_dir, 'model'), epoch)
 
