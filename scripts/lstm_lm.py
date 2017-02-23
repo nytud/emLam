@@ -244,6 +244,10 @@ def main():
                 max_to_keep=max(10, config['Training']['early_stopping'] + 1))
             init = tf.initialize_all_variables()
 
+        embedding = tf.get_collection(tf.GraphKeys.VARIABLES,
+                                      scope='Model/embedding:0')[0]
+        print(embedding)
+
     # TODO: look into Supervisor
     # The training itself
     with tf.Session(graph=graph, config=get_sconfig(config.get('GPU'))) as sess:
