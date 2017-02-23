@@ -59,7 +59,7 @@ class LSTMModel(object):
         self._initial_state = cell.zero_state(self.params.batch_size,
                                               dtype=self.params.data_type)
 
-        if self.params.embedding == 'yes':
+        if self.params.embedding:
             # If using an embedding, the input is a single number per token...
             with tf.device("/cpu:0"):
                 embedding = tf.get_variable(
