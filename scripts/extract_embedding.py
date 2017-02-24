@@ -5,9 +5,9 @@
 
 from __future__ import absolute_import, division, print_function
 from argparse import ArgumentParser
-from builtins import range
 import os
 
+import numpy as np
 import tensorflow as tf
 
 from emLam.utils import openall
@@ -46,10 +46,7 @@ def main():
         embedding = tf.get_collection(tf.GraphKeys.VARIABLES,
                                       scope='Model/embedding:0')[0]
         em = session.run(embedding)
-        with openall(args.output_file, 'wt') as outf:
-            for i in range(len(vocab)):
-                print('{} {}'.format(vocab[i], ' '.join(str(n) for n in em[i])),
-                      file=outf)
+        np.savez(args.output_file + '.npz', vocab=vocab, embedding=em)
 
 
 if __name__ == '__main__':
