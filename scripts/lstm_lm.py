@@ -245,12 +245,14 @@ def main():
             init = tf.initialize_all_variables()
 
         if network_params.embedding and network_params.embedding_file:
+            logger.info('Loading embedding from {}'.format(
+                network_params.embedding_file))
             embedding = tf.get_collection(tf.GraphKeys.VARIABLES,
                                           scope='Model/embedding:0')[0]
             em = np.load(network_params.embedding_file)['embedding']
             assign_em = embedding.assign(em)
         else:
-            assign_em = None
+            assign_em = tf.no_op
 
     # TODO: look into Supervisor
     # The training itself
@@ -262,9 +264,9 @@ def main():
             writer = tf.train.SummaryWriter(boards_dir, graph=graph)
             last_epoch = init_or_load_session(sess, save_dir, saver, init)
             # Load the embedding from file.
-            if last_epoch == 0 and assign_em is not None:
-                logger.info('Loading embedding from {}'.format(network_params.embedding_file))
-                sess.eval(assign_em)
+            if last_epoch == 0:
+                sess.run(assign_em)
+                # Hope this frees up the embedding array...
                 del assign_em
 
             global_step = 0  # TODO not if we load the model...
