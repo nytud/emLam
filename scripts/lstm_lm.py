@@ -245,7 +245,7 @@ def main():
             init = tf.initialize_all_variables()
 
         if network_params.embedding and network_params.embedding_file:
-            logger.info('Loading embedding from {}'.format(
+            logger.info('Loading embedding from {}...'.format(
                 network_params.embedding_file))
             embedding = tf.get_collection(tf.GraphKeys.VARIABLES,
                                           scope='Model/embedding:0')[0]
