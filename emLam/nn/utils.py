@@ -45,9 +45,9 @@ def init_or_load_session(sess, save_dir, saver=None, init=None):
     """
     if saver:
         epoch = load_session(sess, save_dir, saver)
-    if not epoch and init:
+    if epoch is None and init:
         epoch = init_session(sess, save_dir, init)
-    if not epoch:
+    if epoch is None:
         raise ValueError('Could not load or initialize session. Make sure '
                          'a saver or an initializer (resp.) is available')
     return epoch

@@ -262,7 +262,8 @@ def main():
             writer = tf.train.SummaryWriter(boards_dir, graph=graph)
             last_epoch = init_or_load_session(sess, save_dir, saver, init)
             # Load the embedding from file.
-            if last_epoch == 0 and assign_em:
+            if last_epoch == 0 and assign_em is not None:
+                logger.info('Loading embedding from {}'.format(network_params.embedding_file))
                 sess.eval(assign_em)
                 del assign_em
 
