@@ -64,6 +64,7 @@ class LSTMModel(object):
             with tf.device("/cpu:0"):
                 embedding = tf.get_variable(
                     'embedding', [self.params.vocab_size, self.params.hidden_size],
+                    trainable=self.params.embedding_trainable,
                     dtype=self.params.data_type)
                 inputs = tf.nn.embedding_lookup(embedding, self._input_data)
         else:
