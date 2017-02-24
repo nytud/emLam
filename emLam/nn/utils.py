@@ -11,7 +11,7 @@ import tensorflow as tf
 
 
 def load_session(sess, save_dir, saver):
-    """Loads a session."""
+    """Loads a session, returns the last completed epoch."""
     logger = logging.getLogger('emLam.nn')
     checkpoint = tf.train.get_checkpoint_state(save_dir)
     if checkpoint and checkpoint.model_checkpoint_path:
@@ -27,7 +27,7 @@ def load_session(sess, save_dir, saver):
 
 
 def init_session(sess, save_dir, init):
-    """Initiates a session."""
+    """Initiates a session. Returns the epoch, which is 0 in this case."""
     logger = logging.getLogger('emLam.nn')
     if not init:
         raise ValueError('"init" must be specified to initialize the model.')
@@ -35,13 +35,13 @@ def init_session(sess, save_dir, init):
         os.makedirs(save_dir)
     logger.info('Randomly initialize variables')
     sess.run(init)
-    return 1
+    return 0
 
 
 def init_or_load_session(sess, save_dir, saver=None, init=None):
     """
     Initiates or loads a session. In the first case, init must be specified;
-    in the second, saver.
+    in the second, saver. Returns the last completed epoch.
     """
     if saver:
         epoch = load_session(sess, save_dir, saver)

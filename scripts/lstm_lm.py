@@ -244,9 +244,13 @@ def main():
                 max_to_keep=max(10, config['Training']['early_stopping'] + 1))
             init = tf.initialize_all_variables()
 
-        embedding = tf.get_collection(tf.GraphKeys.VARIABLES,
-                                      scope='Model/embedding:0')[0]
-        print(embedding)
+        if network_params.embedding and network_params.embedding_file:
+            embedding = tf.get_collection(tf.GraphKeys.VARIABLES,
+                                          scope='Model/embedding:0')[0]
+            em = np.load(network_params.embedding_file)['embedding']
+            assign_em = embedding.assign(em)
+        else:
+            assign_em = None
 
     # TODO: look into Supervisor
     # The training itself
@@ -257,6 +261,11 @@ def main():
             boards_dir = os.path.join('boards', network_params.model_name)
             writer = tf.train.SummaryWriter(boards_dir, graph=graph)
             last_epoch = init_or_load_session(sess, save_dir, saver, init)
+            # Load the embedding from file.
+            if last_epoch == 0 and assign_em:
+                sess.eval(assign_em)
+                del assign_em
+
             global_step = 0  # TODO not if we load the model...
             logger.info('Starting...')
             if args.valid:
@@ -264,7 +273,7 @@ def main():
                     last_epoch, run_epoch(sess, mvalid, valid_data, 0, verbose=10)[0]))
 
             valid_ppls = []
-            for epoch in range(last_epoch, train_params.epochs + 1):
+            for epoch in range(last_epoch + 1, train_params.epochs + 1):
                 lr_decay = train_params.lr_decay ** max(epoch - train_params.decay_delay, 0.0)
                 mtrain.assign_lr(sess, train_params.learning_rate * lr_decay)
 
