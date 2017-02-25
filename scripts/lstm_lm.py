@@ -9,6 +9,7 @@ from builtins import range
 from functools import partial
 import glob
 import os
+import shutil
 import time
 
 import numpy as np
@@ -69,6 +70,8 @@ def parse_arguments():
                         help='the configuration file (ConfigParser/INI format).')
     parser.add_argument('--model-name', '-m',
                         help='the name of the model [RNN CLM].')
+    parser.add_argument('--reset', '-r', action='store_true',
+                        help='Restart the training even if the model exists [no].')
     parser.add_argument('--log-level', '-l', type=str, default=None,
                         choices=['debug', 'info', 'warning', 'error', 'critical'],
                         help='the logging level.')
@@ -85,6 +88,8 @@ def parse_arguments():
 
     if not args.train and not args.test:
         parser.error('At least one of the train or test sets must be specified.')
+    if not args.train and args.reset:
+        parser.error('The reset option only works for training.')
 
     return args, config
 
@@ -179,6 +184,16 @@ def stop_early(valid_ppls, early_stop, save_dir):
 def main():
     args, config = parse_arguments()
 
+    global logger
+    logger = setup_stream_logger(args.log_level)
+
+    # Delete the save if the user wants to restart training
+    save_dir = os.path.join('saves', config['Network']['model_name'])
+    if args.reset and os.isdir(save_dir):
+        logger.info('Deleting model directory {}'.format(save_dir))
+        shutil.rmtree(save_dir)
+
+    # Assemble the parameter dictionaries
     network_params = AttrDict(config['Network'])
     network_params['data_type'] = tf.float32
     train_params = AttrDict(config['Training'])
@@ -188,6 +203,7 @@ def main():
     test_params = AttrDict(config['Evaluation'])
     test_params.update(network_params)
 
+    # Initialize the data sets and softmax alternatives
     train_data = valid_data = test_data = None
     if args.train:
         train_data = data_loader(args.train, train_params.batch_size,
@@ -214,9 +230,7 @@ def main():
             test_params.vocab_size, test_params.batch_size,
             test_params.num_steps, test_params.data_type)
 
-    global logger
-    logger = setup_stream_logger(args.log_level)
-
+    # Create the models and the global ops
     with tf.Graph().as_default() as graph:
         # init_scale = 1 / math.sqrt(args.num_nodes)
         initializer = tf.random_uniform_initializer(
@@ -255,10 +269,8 @@ def main():
             assign_em = tf.no_op
 
     # TODO: look into Supervisor
-    # The training itself
     with tf.Session(graph=graph, config=get_sconfig(config.get('GPU'))) as sess:
-        save_dir = os.path.join('saves', network_params.model_name)
-
+        # The training itself
         if args.train:
             boards_dir = os.path.join('boards', network_params.model_name)
             writer = tf.train.SummaryWriter(boards_dir, graph=graph)
@@ -299,6 +311,7 @@ def main():
 
             writer.close()
 
+        # Evaluation
         if args.test:
             load_session(sess, save_dir, saver)
             logger.info('Running evaluation...')
