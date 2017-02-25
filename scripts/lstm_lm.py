@@ -189,7 +189,7 @@ def main():
 
     # Delete the save if the user wants to restart training
     save_dir = os.path.join('saves', config['Network']['model_name'])
-    if args.reset and os.isdir(save_dir):
+    if args.reset and os.path.isdir(save_dir):
         logger.info('Deleting model directory {}'.format(save_dir))
         shutil.rmtree(save_dir)
 
