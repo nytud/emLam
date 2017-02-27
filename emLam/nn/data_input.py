@@ -21,11 +21,12 @@ class DataLoader(object):
         self.data_batches = data_batches
         self.one_hot = one_hot
         self.data_type = data_type
-        self.vocab = self._read_vocab(vocab_file) if vocab_file else None
+        self.vocab = self.read_vocab(vocab_file) if vocab_file else None
         # Subclass-specific to avoid copying all the arguments another N times
         self._init()
 
-    def _read_vocab(self, vocab_file):
+    @staticmethod
+    def read_vocab(vocab_file):
         with openall(vocab_file) as inf:
             return {token_freq.split('\t')[0]: i for i, token_freq in
                     enumerate(inf.read().strip().split('\n'))}

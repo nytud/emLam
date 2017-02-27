@@ -17,7 +17,7 @@ from queue import Queue
 import re
 import sys
 
-from emLam.logging import QueueListener, QueueHandler
+from emLam.utils.queue_handler import QueueListener, QueueHandler
 
 __allname_p = re.compile(r'^(.+?)(\.gz|\.bz2)?$')
 

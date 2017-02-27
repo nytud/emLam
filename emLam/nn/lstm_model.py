@@ -50,20 +50,21 @@ class LSTMModel(object):
         # different than reported in the paper.
         # D: Not really...
         rnn_cell = get_rnn(self.params.rnn_cell, self.params.hidden_size)
-        if self.is_training and self.params.keep_prob < 1:
+        if self.is_training and self.params.dropout < 1:
             rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
-                rnn_cell, output_keep_prob=self.params.keep_prob)
+                rnn_cell, output_keep_prob=self.params.dropout)
         cell = tf.nn.rnn_cell.MultiRNNCell(
             [rnn_cell] * self.params.num_layers, state_is_tuple=True)
 
         self._initial_state = cell.zero_state(self.params.batch_size,
                                               dtype=self.params.data_type)
 
-        if self.params.embedding == 'yes':
+        if self.params.embedding:
             # If using an embedding, the input is a single number per token...
             with tf.device("/cpu:0"):
                 embedding = tf.get_variable(
                     'embedding', [self.params.vocab_size, self.params.hidden_size],
+                    trainable=self.params.embedding_trainable,
                     dtype=self.params.data_type)
                 inputs = tf.nn.embedding_lookup(embedding, self._input_data)
         else:
@@ -72,8 +73,8 @@ class LSTMModel(object):
                                 dtype=self.params.data_type)
             # tf.unpack(inputs, axis=1) only needed for rnn, not dynamic_rnn
 
-        if self.is_training and self.params.keep_prob < 1:
-            inputs = tf.nn.dropout(inputs, self.params.keep_prob)
+        if self.is_training and self.params.dropout < 1:
+            inputs = tf.nn.dropout(inputs, self.params.dropout)
 
         # Simplified version of tensorflow.models.rnn.rnn.py's rnn().
         # This builds an unrolled LSTM for tutorial purposes only.

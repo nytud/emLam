@@ -49,6 +49,24 @@ setup(name='emlam',
       ],
       keywords='language modeling Hungarian RNN',
       packages=find_packages(exclude=['scripts']),
+      # Include the configuration -- unfortunately, MANIFEST.in doesn't seem
+      # to do it for bdist (and package_data for sdist)
+      # WARNING For now, emLam doesn't work with bdist, because the scripts
+      # below are not installed anyway.
+      package_data={
+          'conf': ['*'],
+      },
+      # Install the scripts
+      # TODO Change this to entry_points/console_scripts (see WARNING above)
+      scripts=[
+          'scripts/extract_embedding.py',
+          'scripts/lstm_lm.py',
+          'scripts/preprocess_corpus.py',
+          'scripts/shuffle_in_memory.py',
+          'scripts/tsv_to_running_text.py',
+          'scripts/uniq_corpus.py',
+          'scripts/unk_corpus.py'
+      ],
       # Tensorflow and numpy can be installed from requirement files, as they
       # are only required if the nn module / scripts are used.
       install_requires=[
@@ -56,7 +74,9 @@ setup(name='emlam',
           'future', 'six',
           # Communication with GATE; an earlier lxml version is broken, but
           # I don't know which; >=3.6 might be enough.
-          'requests', 'lxml>=3.6.4'
+          'requests', 'lxml>=3.6.4',
+          # Better configuration files.
+          'configobj'
       ],
       # TODO Could use entry_points for corpora / preprocessors and console_scripts
       # zip_safe=False,
