@@ -16,6 +16,8 @@ binary_type = str if sys.version_info < (3,) else bytes
 
 class Reuters(RawCorpus):
     NAME = 'en_reuters'
+    DESCRIPTION = 'the new Reuters corpus'
+
     html_parser = HTMLParser()
 
     def __init__(self, max_lines):

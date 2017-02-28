@@ -6,16 +6,19 @@ import os.path as op
 
 
 def get_all_corpora():
+    """Returns all corpus classes defined in the corpus package."""
     from emLam.corpus.corpus_base import Corpus
     return get_all_classes(Corpus)
 
 
 def get_all_preprocessors():
+    """Returns all preprocessor classes defined in the corpus package."""
     from emLam.corpus.preprocessor_base import Preprocessor
     return get_all_classes(Preprocessor)
 
 
 def get_all_classes(ancestor):
+    """Returns all classes of a specific type defined in the corpus package."""
     def is_mod_class(mod, cls):
         return inspect.isclass(cls) and inspect.getmodule(cls) == mod
 

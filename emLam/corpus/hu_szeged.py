@@ -10,6 +10,7 @@ from emLam.corpus.corpus_base import GoldCorpus
 
 class SzegedCorpus(GoldCorpus):
     NAME = 'hu_szeged'
+    DESCRIPTION = 'Szeged Treebank'
 
     def __init__(self, keep_columns):
         self.keep_columns = keep_columns

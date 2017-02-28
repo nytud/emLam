@@ -16,6 +16,8 @@ from emLam.utils import openall
 
 class Webcorpus(RawCorpus):
     NAME = 'hu_webcorpus'
+    DESCRIPTION = 'Hungarian Webcorpus'
+
     rename_p = re.compile(r'\.tar(\.gz)$')
 
     def __init__(self, max_lines, compressed=True, max_entities=0.2):

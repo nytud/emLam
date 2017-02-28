@@ -31,6 +31,8 @@ class Preprocessor(Component):
 class CopyPreprocessor(Preprocessor):
     """This class simply copies the input to the output."""
     NAME = 'copy'
+    DESCRIPTION = 'copies input lines to the output'
+
     def __init__(self):
         pass
 

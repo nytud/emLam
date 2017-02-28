@@ -10,6 +10,7 @@ from emLam.corpus.preprocessor_base import Preprocessor
 class CoreNlpPreprocessor(Preprocessor):
     """A preprocessor that invokes a Stanford CoreNLP server for analysis."""
     NAME = 'CoreNLP'
+    DESCRIPTION = 'CoreNLP preprocessor'
 
     def __init__(self, corenlp_props, max_length=10000):
         self.corenlp_props = corenlp_props

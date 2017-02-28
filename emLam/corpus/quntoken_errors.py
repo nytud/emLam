@@ -13,6 +13,7 @@ from emLam.corpus.preprocessor_base import Preprocessor
 class QunTokenErrors(Preprocessor):
     """Preprocessor that looks for input that segfaults QunToken."""
     NAME = 'qt_errors'
+    DESCRIPTION = 'QunToken error logger'
 
     def __init__(self, quntoken, max_length=50000, tmp_dir='/run/shm/'):
         self.quntoken = quntoken

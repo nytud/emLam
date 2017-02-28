@@ -20,6 +20,8 @@ binary_type = str if sys.version_info < (3,) else bytes
 
 class MNSZ2Corpus(RawCorpus):
     NAME = 'hu_mnsz2'
+    DESCRIPTION = 'Hungarian National Corpus'
+
     html_parser = HTMLParser()
     spaces = re.compile(r'[ \t]+')
     empty_lines = re.compile(r'\n[ \t]+\n')

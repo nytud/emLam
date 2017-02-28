@@ -10,6 +10,7 @@ from emLam.corpus.preprocessor_base import Preprocessor
 class GATEPreprocessor(Preprocessor):
     """A preprocessor that invokes a GATE server for analysis."""
     NAME = 'GATE'
+    DESCRIPTION = 'GATE preprocessor'
 
     def __init__(self, gate_props, max_length=10000, restart_every=0):
         super(GATEPreprocessor, self).__init__()

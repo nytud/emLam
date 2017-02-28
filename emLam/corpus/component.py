@@ -16,6 +16,10 @@ class NamedClass(type):
     def name(cls):
         return getattr(cls, 'NAME', None)
 
+    @property
+    def description(cls):
+        return getattr(cls, 'DESCRIPTION', None)
+
 class Component(with_metaclass(NamedClass, object)):
     """Base class for corpus objects."""
     def __init__(self):
