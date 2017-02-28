@@ -266,7 +266,7 @@ def main():
             em = np.load(network_params.embedding_file)['embedding']
             assign_em = embedding.assign(em)
         else:
-            assign_em = tf.no_op
+            assign_em = tf.no_op()
 
     # TODO: look into Supervisor
     with tf.Session(graph=graph, config=get_sconfig(config.get('GPU'))) as sess:
