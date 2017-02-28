@@ -104,31 +104,6 @@ class LSTMModel(object):
         self._final_state = state
         return outputs
 
-    def _shared_loss(self, outputs):
-        """Computes the shared softmax over all time-steps."""
-        # Flatten to apply same weights to all time steps.
-        flat_output = tf.reshape(outputs, [-1, self.params.hidden_size])
-        softmax_w = tf.get_variable(
-            "softmax_w", [self.params.hidden_size, self.params.vocab_size],
-            dtype=self.params.data_type)
-        softmax_b = tf.get_variable(
-            "softmax_b", [self.params.vocab_size], dtype=self.params.data_type)
-        # logits = tf.matmul(flat_output, softmax_w) + softmax_b
-        # loss = tf.nn.seq2seq.sequence_loss_by_example(
-        #     [logits],
-        #     [tf.reshape(self._targets, [-1])],
-        #     [tf.ones([self.params.batch_size * self.params.num_steps],
-        #              dtype=self.params.data_type)])
-        # softmax = tf.nn.softmax(logits)
-        # prediction = tf.reshape(softmax, [-1, self.num_steps, vocab_size])
-        num_sampled = 4096
-        loss = tf.nn.sampled_softmax_loss(
-            tf.transpose(softmax_w), softmax_b,         # .T for some reason
-            flat_output, tf.reshape(self.targets, [-1, 1]),  # Column vector
-            num_sampled, self.params.vocab_size)
-        cost = tf.reduce_sum(loss) / self.params.batch_size
-        return cost
-
     def _optimize(self):
         self._lr = tf.Variable(0.0, trainable=False)
         tvars = tf.trainable_variables()
