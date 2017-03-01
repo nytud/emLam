@@ -43,7 +43,7 @@ class Softmax(LossAndPrediction):
             [tf.reshape(targets, [-1])],
             [tf.ones([self.batch_size * self.num_steps],
                      dtype=self.data_type)],
-            average_across_timestamps=True,
+            average_across_timesteps=True,
             average_across_batch=True)
         loss = tf.reduce_sum(cost) # / self.batch_size
         if need_prediction:
