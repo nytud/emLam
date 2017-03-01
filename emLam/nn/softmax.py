@@ -38,12 +38,14 @@ class Softmax(LossAndPrediction):
             "softmax_b", [self.vocab_size], dtype=self.data_type)
         logits = tf.matmul(flat_output, softmax_w) + softmax_b
 
-        cost = tf.nn.seq2seq.sequence_loss_by_example(
+        cost = tf.contrib.seq2seq.sequence_loss(
             [logits],
             [tf.reshape(targets, [-1])],
             [tf.ones([self.batch_size * self.num_steps],
-                     dtype=self.data_type)])
-        loss = tf.reduce_sum(cost) / self.batch_size
+                     dtype=self.data_type)],
+            average_across_timestamps=True,
+            average_across_batch=True)
+        loss = tf.reduce_sum(cost) # / self.batch_size
         if need_prediction:
             prediction = tf.reshape(
                 tf.nn.softmax(logits), [-1, self.num_steps, self.vocab_size])
