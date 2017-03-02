@@ -25,13 +25,12 @@ class LSTMModel(object):
         with tf.name_scope('Summaries') as scope:
             summaries = []
             summaries.append(
-                tf.scalar_summary(bytes(scope, 'utf-8') + b'Loss',
-                                  self._cost, name='loss_summary'))
+                tf.summary.scalar(scope + 'Loss', self._cost))
             if is_training:
                 summaries.append(
-                    tf.scalar_summary(bytes(scope, 'utf-8') + b'Learning rate',
-                                      self._lr, name='lr_summary'))
-            self.summaries = tf.merge_summary(summaries)
+                    tf.summary.scalar(scope + 'Learning rate',
+                                      self._lr))
+            self.summaries = tf.summary.merge(summaries)
 
     def _data(self):
         """
@@ -51,9 +50,9 @@ class LSTMModel(object):
         # D: Not really...
         rnn_cell = get_rnn(self.params.rnn_cell, self.params.hidden_size)
         if self.is_training and self.params.dropout < 1:
-            rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
+            rnn_cell = tf.contrib.rnn.DropoutWrapper(
                 rnn_cell, output_keep_prob=self.params.dropout)
-        cell = tf.nn.rnn_cell.MultiRNNCell(
+        cell = tf.contrib.rnn.MultiRNNCell(
             [rnn_cell] * self.params.num_layers, state_is_tuple=True)
 
         self._initial_state = cell.zero_state(self.params.batch_size,

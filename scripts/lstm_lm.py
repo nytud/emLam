@@ -136,6 +136,7 @@ def run_epoch(session, model, data, epoch_size=0, verbose=0,
                 global_step += 1
         else:
             cost, state, _ = session.run(fetches, feed_dict)
+        # logger.debug('Cost: {}'.format(cost))
         costs += cost
         iters += model.params.num_steps
         if verbose and step % log_every == log_every - 1:
@@ -273,7 +274,7 @@ def main():
         # The training itself
         if args.train:
             boards_dir = os.path.join('boards', network_params.model_name)
-            writer = tf.train.SummaryWriter(boards_dir, graph=graph)
+            writer = tf.summary.FileWriter(boards_dir, graph=graph)
             last_epoch = init_or_load_session(sess, save_dir, saver, init)
             # Load the embedding from file.
             if last_epoch == 0:
