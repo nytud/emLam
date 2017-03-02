@@ -14,36 +14,61 @@ import os.path as op
 from queue import Empty
 
 from emLam.corpus import get_all_corpora, get_all_preprocessors
+from emLam.corpus.corpus_base import GoldCorpus
+from emLam.corpus.preprocessor_base import CopyPreprocessor
 from emLam.utils import run_queued, setup_queue_logger
 
 
+def usage_epilog(corpora, preprocessors):
+    """Describes the various Corpus and Preprocessor classes available."""
+    cformat = '{{:<{}}} - {{}}'.format(max(len(name) for name, _ in corpora))
+    pformat = '{{:<{}}} - {{}}'.format(max(len(name) for name, _ in preprocessors))
+    c = '\nThe following corpora are available:\n' + '\n'.join(
+        cformat.format(name, cls.description) for name, cls in corpora)
+    p = '\nThe following corpora are available:\n' + '\n'.join(
+        pformat.format(name, cls.description) for name, cls in corpora)
+    return c + '\n' + p
+
+
 def parse_arguments():
+    corpora = get_all_corpora()
+    preprocessors = get_all_preprocessors()
+
     parser = ArgumentParser(
-        description='Preprocesses the specified corpus.')
+        description='Preprocesses the specified corpus.',
+        epilog=usage_epilog(corpora, preprocessors))
     parser.add_argument('--source-dir', '-s', required=True,
                         help='the source directory.')
     parser.add_argument('--target-dir', '-t', required=True,
                         help='the target directory.')
-    parser.add_argument('--processes', '-p', type=int, default=1,
+    parser.add_argument('--corpus', '-p', required=True,
+                        choices=[c for c, _ in corpora],
+                        help='the corpus to preprocess. See below for a '
+                             'description of the available corpora.')
+    parser.add_argument('--preprocessor', '-p', required=True,
+                        choices=[p for p, _ in preprocessors],
+                        help='the preprocessor to use. See below for a '
+                             'description of the available options.')
+    parser.add_argument('--configuration', '-C', required=True,
+                        help='the configuration file.')
+    parser.add_argument('--processes', '-P', type=int, default=1,
                         help='the number of files to process parallelly.')
     parser.add_argument('--log-level', '-L', type=str, default=None,
                         choices=['debug', 'info', 'warning', 'error', 'critical'],
                         help='the logging level.')
-    subparsers = parser.add_subparsers(
-        title='Corpus selection',
-        description='This section lists the corpora processor available for '
-                    'selection. For help on a specific corpus, call the '
-                    'script with the `<corp> -h` arguments.',
-        dest='corpus', help='the corpora processors available.')
-    corpora = get_all_corpora()
-    for _, corpus_class in sorted(corpora.items()):
-        corpus_class.parser(subparsers)
 
     args = parser.parse_args()
     if args.source_dir == args.target_dir:
         parser.error('Source and target directories must differ.')
+
     args.corpus = corpora[args.corpus]
-    args.preprocessor = get_all_preprocessors()[args.preprocessor]
+    args.preprocessor = preprocessors[args.preprocessor]
+    if (
+        issubclass(args.corpus, GoldCorpus) and
+        args.preprocessor != CopyPreprocessor
+    ):
+        parser.error("Gold standard corpora can only be used with the ``copy'' "
+                     "preprocessor.")
 
     return args
 

@@ -67,7 +67,7 @@ def parse_arguments():
                         help='the text file to use as the test set.')
     parser.add_argument('--vocab', '-v', help='the vocabulary file.')
     parser.add_argument('--configuration', '-c', required=True,
-                        help='the configuration file (ConfigParser/INI format).')
+                        help='the configuration file.')
     parser.add_argument('--model-name', '-m',
                         help='the name of the model [RNN CLM].')
     parser.add_argument('--reset', '-r', action='store_true',
