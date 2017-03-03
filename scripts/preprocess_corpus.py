@@ -8,7 +8,6 @@ Webcorpus and MNSZ2.
 from __future__ import absolute_import, division, print_function
 from builtins import range
 from argparse import ArgumentParser
-import logging
 import os
 import os.path as op
 from queue import Empty
@@ -17,6 +16,7 @@ from emLam.corpus import get_all_corpora, get_all_preprocessors
 from emLam.corpus.corpus_base import GoldCorpus
 from emLam.corpus.preprocessor_base import CopyPreprocessor
 from emLam.utils import run_queued, setup_queue_logger
+from emLam.utils.config import handle_errors, load_config
 
 
 def usage_epilog(corpora, preprocessors):
@@ -70,7 +70,12 @@ def parse_arguments():
         parser.error("Gold standard corpora can only be used with the ``copy'' "
                      "preprocessor.")
 
-    return args
+    # Config file
+    config, warnings, errors = load_config(args.configuration,
+                                           'preprocess_corpus.schema')
+    handle_errors(warnings, errors)
+
+    return args, config
 
 
 def walk_non_hidden(directory):
@@ -104,13 +109,14 @@ def source_target_file_list(source_dir, target_dir):
 
 
 def process_file(components, queue, logging_level=None, logging_queue=None):
-    corpus_cls, preprocessor_cls, pid, args = components
+    corpus_cls, preprocessor_cls, pid, config = components
     # First set up the logger used by the corpus and the preprocessor
     logger = setup_queue_logger(logging_level, logging_queue)
 
     # Then we can instantiate the objects that do the actual work
-    corpus = corpus_cls.instantiate(pid, **args)
-    preprocessor = preprocessor_cls.instantiate(pid, **args)
+    corpus = corpus_cls.instantiate(pid, config.get(corpus_cls.name, {}))
+    preprocessor = preprocessor_cls.instantiate(
+        pid, config.get(preprocessor_cls.name, {}))
     preprocessor.initialize()
     try:
         while True:
@@ -136,10 +142,10 @@ def process_file(components, queue, logging_level=None, logging_queue=None):
 
 
 def main():
-    args = parse_arguments()
+    args, config = parse_arguments()
     os.nice(20)  # Play nice
 
-    components = [(args.corpus, args.preprocessor, p + 1, dict(args.__dict__))
+    components = [(args.corpus, args.preprocessor, p + 1, config)
                   for p in range(args.processes)]
     source_target_files = source_target_file_list(args.source_dir, args.target_dir)
 
