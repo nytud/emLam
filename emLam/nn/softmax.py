@@ -30,20 +30,25 @@ class LossAndPrediction(object):
 class Softmax(LossAndPrediction):
     def __call__(self, outputs, targets, need_prediction=False):
         """Computes the shared loss over all time-steps."""
-        flat_output = tf.reshape(outputs, [-1, self.hidden_size])
         softmax_w = tf.get_variable(
             "softmax_w", [self.hidden_size, self.vocab_size],
             dtype=self.data_type)
         softmax_b = tf.get_variable(
             "softmax_b", [self.vocab_size], dtype=self.data_type)
-        logits = tf.matmul(flat_output, softmax_w) + softmax_b
+        # einsum is the better way to do 3Dx2D
+        logits = tf.einsum('ijk,kl->ijl', outputs, softmax_w) + softmax_b
+        # flat_output = tf.reshape(outputs, [-1, self.hidden_size])
+        # logits = tf.matmul(flat_output, softmax_w) + softmax_b
+        # logits2 = tf.reshape(logits, [self.batch_size, self.num_steps, -1])
 
-        cost = tf.nn.seq2seq.sequence_loss_by_example(
-            [logits],
-            [tf.reshape(targets, [-1])],
-            [tf.ones([self.batch_size * self.num_steps],
-                     dtype=self.data_type)])
-        loss = tf.reduce_sum(cost) / self.batch_size
+        cost = tf.contrib.seq2seq.sequence_loss(
+            logits,
+            targets,
+            tf.ones([self.batch_size, self.num_steps], dtype=self.data_type),
+            average_across_timesteps=False,  # BPTT
+            average_across_batch=True)
+        loss = tf.reduce_sum(cost)
+
         if need_prediction:
             prediction = tf.reshape(
                 tf.nn.softmax(logits), [-1, self.num_steps, self.vocab_size])

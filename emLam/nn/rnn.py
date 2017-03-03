@@ -11,7 +11,7 @@ import tensorflow as tf
 
 
 def lstm(num_cells, **kwargs):
-    return tf.nn.rnn_cell.BasicLSTMCell(
+    return tf.contrib.rnn.BasicLSTMCell(
         num_cells, forget_bias=float(kwargs.get('forget_bias', 1.0)),
         state_is_tuple=True)
 
@@ -21,14 +21,14 @@ def lstmp(num_cells, **kwargs):
     num_proj = int(kwargs['num_proj'])
     proj_clip = float(kwargs['forget_bias']) if 'proj_clip' in kwargs else None
     activation = getattr(tf, kwargs.get('activation', 'tanh'))
-    return tf.nn.rnn_cell.LSTMCell(num_units=num_cells, num_proj=num_proj,
+    return tf.contrib.rnn.LSTMCell(num_units=num_cells, num_proj=num_proj,
                                    proj_clip=proj_clip, forget_bias=forget_bias,
                                    state_is_tuple=True, activation=activation)
 
 
 def gru(num_cells, **kwargs):
     activation = getattr(tf, kwargs.get('activation', 'tanh'))
-    return tf.nn.rnn_cell.GRUCell(num_cells, activation=activation)
+    return tf.contrib.rnn.GRUCell(num_cells, activation=activation)
 
 
 def get_rnn(rnn_definition, num_cells):
