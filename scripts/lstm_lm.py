@@ -257,7 +257,7 @@ def main():
             saver = tf.train.Saver(
                 name='saver',
                 max_to_keep=max(10, config['Training']['early_stopping'] + 1))
-            init = tf.initialize_all_variables()
+            init = tf.global_variables_initializer()
 
         if network_params.embedding and network_params.embedding_file:
             logger.info('Loading embedding from {}...'.format(

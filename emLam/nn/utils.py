@@ -43,6 +43,7 @@ def init_or_load_session(sess, save_dir, saver=None, init=None):
     Initiates or loads a session. In the first case, init must be specified;
     in the second, saver. Returns the last completed epoch.
     """
+    epoch = None
     if saver:
         epoch = load_session(sess, save_dir, saver)
     if epoch is None and init:
