@@ -27,22 +27,38 @@ def get_config_file(config_file):
 
 def handle_errors(warnings, errors, stream=sys.stderr, exit=True):
     """Handles errors and warnings."""
-    for warning in warnings:
-        print(warning, file=stream)
+    if warnings:
+        print('Warnings:', file=stream)
+        for warning in warnings:
+            print(warning, file=stream)
     if errors:
+        print('Errors:', file=stream)
         for error in errors:
             print(error, file=stream)
         if exit:
             sys.exit(1)
 
 
-def load_config(config_file, schema, postprocessing=None):
+def load_config(config_file, schema, postprocessing=None, retain=None, drop=None):
     """
     Loads a configobj-type configuration file. It is also
     possible to specify an application-specific postprocessing function which
     has three arguments: the configuration object and the warnings and errors
     lists. These are also the return values from the function.
+
+    It is possible to specify a list of section titles that are retained (in
+    this case, or others are dropped) or dropped. This allows more fine grain
+    control over which sections need to be validated and which do not.
     """
+    def keep_section(sections, retained, dropped):
+        """Tells if the section path in question should be kept."""
+        secs = set(sections)
+        if retained and not secs & retained:
+            return False
+        if dropped and secs & dropped:
+            return False
+        return True
+
     config = configobj.ConfigObj(get_config_file(config_file),
                                  configspec=get_config_file(schema))
     warnings, errors = [], []
@@ -51,9 +67,14 @@ def load_config(config_file, schema, postprocessing=None):
     if postprocessing:
         postprocessing(config, warnings, errors)
 
+    retained = set(retain) if retain else set()
+    dropped = set(drop) if drop else set()
     for sections, key in configobj.get_extra_values(config):
-        warnings.append('Undefined key {}'.format(
-            '.'.join((chain(sections, [key])))))
+        if keep_section(sections, retained, dropped):
+            warnings.append('Undefined key {}'.format(
+                '.'.join((chain(sections, [key])))))
     for sections, key, error in configobj.flatten_errors(config, results):
-        errors.append('{}: {}'.format('.'.join((chain(sections, [key]))), error))
+        if keep_section(sections, retained, dropped):
+            errors.append('{}: {}'.format(
+                '.'.join((chain(sections, [key]))), error))
     return config, warnings, errors

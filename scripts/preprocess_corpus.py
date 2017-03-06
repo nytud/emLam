@@ -72,8 +72,10 @@ def parse_arguments():
                      "preprocessor.")
 
     # Config file
-    config, warnings, errors = load_config(args.configuration,
-                                           'preprocess_corpus.schema')
+    config, warnings, errors = load_config(
+        args.configuration, 'preprocess_corpus.schema',
+        retain=[args.corpus.name, args.preprocessor.name])
+    print(config, warnings, errors)
     handle_errors(warnings, errors)
 
     return args, config
@@ -115,9 +117,9 @@ def process_file(components, queue, logging_level=None, logging_queue=None):
     logger = setup_queue_logger(logging_level, logging_queue)
 
     # Then we can instantiate the objects that do the actual work
-    corpus = corpus_cls.instantiate(pid, config.get(corpus_cls.name, {}))
+    corpus = corpus_cls.instantiate(pid, **config.get(corpus_cls.name, {}))
     preprocessor = preprocessor_cls.instantiate(
-        pid, config.get(preprocessor_cls.name, {}))
+        pid, **config.get(preprocessor_cls.name, {}))
     preprocessor.initialize()
     try:
         while True:
