@@ -251,8 +251,14 @@ def parse_gate_xml(xml, anas=False):
 
 
 class AnasParser(object):
-    def __init__(self):
-        def dummy(toks):
+    """
+    Wraps a pyparsing parser for the anas, as returned by the functions above.
+    """
+    __parser = None
+
+    @staticmethod
+    def __create_parser():
+        def dummy_value(toks):
             toks.insert(0, '')
 
         ptag = pp.QuotedString('[', endQuoteChar=']', unquoteResults=False)
@@ -261,12 +267,17 @@ class AnasParser(object):
         psegment = pp.Or([
             ptext.setResultsName('segment') + ptag.setResultsName('tag') +
             pp.Suppress(psurface),
-            pp.Empty().setParseAction(dummy).setResultsName('segment') +
+            pp.Empty().setParseAction(dummy_value).setResultsName('segment') +
             ptag.setResultsName('tag')
         ])
         pword = pp.delimitedList(pp.Group(psegment), '+')
         panas = pp.delimitedList(pp.Group(pword), ';')
-        self.p = panas
+        return panas
 
-    def parse(self, s):
-        return self.p.parseString(s)
+    @staticmethod
+    def parse(s):
+        """This gets called only once, and is then replaced by parseString."""
+        print('Called!')
+        AnasParser.__parser = AnasParser.__create_parser()
+        AnasParser.parse = AnasParser.__parser.parseString
+        return AnasParser.parse(s)
