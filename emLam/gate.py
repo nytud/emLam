@@ -13,6 +13,7 @@ from subprocess import Popen
 import time
 
 from lxml import etree
+import pyparsing as pp
 import requests
 
 from emLam import WORD, LEMMA
@@ -247,3 +248,25 @@ def parse_gate_xml_file_dom(xml_file, get_anas=False):
 def parse_gate_xml(xml, anas=False):
     """Parses a GATE response from memory."""
     return parse_gate_xml_file(BytesIO(xml), anas)
+
+
+class AnasParser(object):
+    def __init__(self):
+        def dummy(toks):
+            toks.insert(0, '')
+
+        ptag = pp.QuotedString('[', endQuoteChar=']', unquoteResults=False)
+        ptext = pp.CharsNotIn('+[];')
+        psurface = pp.Literal('=') + ptext
+        psegment = pp.Or([
+            ptext.setResultsName('segment') + ptag.setResultsName('tag') +
+            pp.Suppress(psurface),
+            pp.Empty().setParseAction(dummy).setResultsName('segment') +
+            ptag.setResultsName('tag')
+        ])
+        pword = pp.delimitedList(pp.Group(psegment), '+')
+        panas = pp.delimitedList(pp.Group(pword), ';')
+        self.p = panas
+
+    def parse(self, s):
+        return self.p.parseString(s)
