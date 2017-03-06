@@ -8,7 +8,7 @@
 [[RawCorpus]]
 # If greater than 0, the output will be written to a series of files, each
 # (save the last one) approximately this long.
-max_lines = integer(min=0)
+max_lines = integer(min=0, default=0)
 
 [[[hu_mnsz2]]]
 # Include paragraphs marked with lang=foreign.
