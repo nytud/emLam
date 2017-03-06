@@ -271,13 +271,13 @@ class AnasParser(object):
             ptag.setResultsName('tag')
         ])
         pword = pp.delimitedList(pp.Group(psegment), '+')
-        panas = pp.delimitedList(pp.Group(pword), ';')
+        panas = (pp.stringStart + pp.delimitedList(pp.Group(pword), ';') +
+                 pp.stringEnd)
         return panas
 
     @staticmethod
     def parse(s):
         """This gets called only once, and is then replaced by parseString."""
-        print('Called!')
         AnasParser.__parser = AnasParser.__create_parser()
         AnasParser.parse = AnasParser.__parser.parseString
         return AnasParser.parse(s)
