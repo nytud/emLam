@@ -3,7 +3,10 @@
 
 from __future__ import absolute_import, division, print_function
 from builtins import range
-from configparser import RawConfigParser  # Should work under 2.7, too
+try:
+    from configparser import RawConfigParser
+except:
+    from ConfigParser import RawConfigParser
 from future.moves.urllib.parse import urlencode
 from io import open, BytesIO, StringIO
 import logging

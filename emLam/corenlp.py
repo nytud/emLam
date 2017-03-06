@@ -2,7 +2,10 @@
 """Manages a Stanford CoreNLP server."""
 
 from __future__ import absolute_import, division, print_function
-from configparser import RawConfigParser  # Should work under 2.7, too
+try:
+    from configparser import RawConfigParser
+except:
+    from ConfigParser import RawConfigParser
 import logging
 # from future.moves.urllib.parse import urlencode
 import os
