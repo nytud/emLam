@@ -14,7 +14,7 @@ from emLam.corpus.hacks import split_for_qt
 
 class TextCorpus(RawCorpus):
     NAME = 'text'
-    DESCRIPTION = 'newline-separated text corpus'
+    DESCRIPTION = 'generic newline-separated text corpus'
 
     @contextmanager
     def instream(self, input_file):
