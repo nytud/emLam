@@ -44,7 +44,7 @@ max_length = integer(default=10000)
 # the file name, it will be replaced by the id of the current process. This
 # feature should be used in a multiprocessing setting.
 # TODO include it instead as a section.
-corenlp_props = string()
+gate_props = string()
 # The length of a text chunk sent to the server.
 max_length = integer(default=10000)
 # Restart the GATE server after every N sentences to avoid OutOfMemoryException
