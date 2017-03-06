@@ -7,7 +7,7 @@ Webcorpus and MNSZ2.
 
 from __future__ import absolute_import, division, print_function
 from builtins import range
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import os
 import os.path as op
 from queue import Empty
@@ -21,12 +21,12 @@ from emLam.utils.config import handle_errors, load_config
 
 def usage_epilog(corpora, preprocessors):
     """Describes the various Corpus and Preprocessor classes available."""
-    cformat = '{{:<{}}} - {{}}'.format(max(len(name) for name, _ in corpora))
-    pformat = '{{:<{}}} - {{}}'.format(max(len(name) for name, _ in preprocessors))
+    cformat = '{{:<{}}} - {{}}'.format(max(len(name) for name, _ in corpora.items()))
+    pformat = '{{:<{}}} - {{}}'.format(max(len(name) for name, _ in preprocessors.items()))
     c = '\nThe following corpora are available:\n' + '\n'.join(
-        cformat.format(name, cls.description) for name, cls in corpora)
-    p = '\nThe following corpora are available:\n' + '\n'.join(
-        pformat.format(name, cls.description) for name, cls in corpora)
+        cformat.format(name, cls.description) for name, cls in corpora.items())
+    p = '\nThe following preprocessors are available:\n' + '\n'.join(
+        pformat.format(name, cls.description) for name, cls in preprocessors.items())
     return c + '\n' + p
 
 
@@ -36,17 +36,18 @@ def parse_arguments():
 
     parser = ArgumentParser(
         description='Preprocesses the specified corpus.',
+        formatter_class=RawDescriptionHelpFormatter,
         epilog=usage_epilog(corpora, preprocessors))
     parser.add_argument('--source-dir', '-s', required=True,
                         help='the source directory.')
     parser.add_argument('--target-dir', '-t', required=True,
                         help='the target directory.')
-    parser.add_argument('--corpus', '-p', required=True,
-                        choices=[c for c, _ in corpora],
+    parser.add_argument('--corpus', '-c', required=True,
+                        choices=[c for c, _ in corpora.items()],
                         help='the corpus to preprocess. See below for a '
                              'description of the available corpora.')
     parser.add_argument('--preprocessor', '-p', required=True,
-                        choices=[p for p, _ in preprocessors],
+                        choices=[p for p, _ in preprocessors.items()],
                         help='the preprocessor to use. See below for a '
                              'description of the available options.')
     parser.add_argument('--configuration', '-C', required=True,
