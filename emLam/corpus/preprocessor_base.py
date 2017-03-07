@@ -39,8 +39,3 @@ class CopyPreprocessor(Preprocessor):
     def preprocess(self, input_stream, output_stream):
         for line in input_stream:
             print(line, file=output_stream, end=u'')
-
-    @classmethod
-    def parser(cls, subparsers):
-        parser = subparsers.add_parser(
-            cls.NAME, help='Copies input lines to the output.')

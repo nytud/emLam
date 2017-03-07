@@ -55,23 +55,6 @@ class CoreNlpPreprocessor(Preprocessor):
             yield self.corenlp.parse(text)
 
     @classmethod
-    def parser(cls, subparsers):
-        """Adds the GATE server parameters to the subparser."""
-        # Double % because argparse uses 'str % params'-style formatting
-        parser = subparsers.add_parser(cls.NAME, help='CoreNLP preprocessor')
-        parser.add_argument('--corenlp-props', '-G', required=True,
-                            help='a Python ConfigParser-style configuration '
-                                 'file that contains the parameters passed to '
-                                 'the CoreNLP server. If there is a "%%" in '
-                                 'the file name, it will be replaced by the '
-                                 'id of the current process. This feature '
-                                 'should be used in a multiprocessing '
-                                 'setting.')
-        parser.add_argument('--max-length', '-l', type=int, default=10000,
-                            help='the length of a text chunk sent to the server '
-                                 '[10000].')
-
-    @classmethod
     def instantiate(cls, process_id=1, **kwargs):
             mod_args = dict(kwargs)
             mod_args['corenlp_props'] = kwargs['corenlp_props'].replace(

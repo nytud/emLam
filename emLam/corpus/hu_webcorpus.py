@@ -96,20 +96,6 @@ class Webcorpus(RawCorpus):
             clean_text.append(c if not cat.startswith('Z') else ' ')
         return u''.join(clean_text)
 
-    @classmethod
-    def child_parser(cls, subparsers):
-        parser = subparsers.add_parser('hu_webcorpus', help='Hungarian Webcorpus')
-        parser.add_argument('--uncompressed', '-u', action='store_false',
-                            dest='compressed',
-                            help='the source directory contains the uncompressed '
-                                 'corpus (1 file per document). Not recommended; '
-                                 'by default, the preprocessor expects '
-                                 'tar.gz files.')
-        parser.add_argument('--max-entities', '-m', type=float, default=0.2,
-                            help='the HTML entity / characters ratio above '
-                                 'which a sentence is discarded.')
-        return parser
-
     @staticmethod
     def enumerate_tar(archive):
         if not tarfile.is_tarfile(archive):

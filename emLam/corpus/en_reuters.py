@@ -65,9 +65,3 @@ class Reuters(RawCorpus):
             s = Reuters.html_parser.unescape(s)
             # s = s.replace('\n', ' ')
             return s
-
-    @classmethod
-    def child_parser(cls, subparsers):
-        parser = subparsers.add_parser('en_reuters',
-                                       help='the new Reuters corpus')
-        return parser

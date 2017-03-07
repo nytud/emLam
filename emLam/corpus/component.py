@@ -31,15 +31,6 @@ class Component(with_metaclass(NamedClass, object)):
         self.logger.setLevel(self.logger.parent.level)
 
     @classmethod
-    def parser(cls, subparsers):
-        """
-        This method adds a (n ArgumentParser) subparser to the group specified
-        in the argument.
-        """
-        raise NotImplementedError(
-            'parser() must be implemented in class {}'.format(cls.__name__))
-
-    @classmethod
     def instantiate(cls, process_id=0, **kwargs):
         """
         Instantiates the class from keyword arguments. The process_id (not a

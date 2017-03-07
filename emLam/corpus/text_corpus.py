@@ -35,9 +35,3 @@ class TextCorpus(RawCorpus):
                         for chunk in split_for_qt(u'\n'.join(lines)):
                             yield chunk
         yield __instream()
-
-    @classmethod
-    def child_parser(cls, subparsers):
-        parser = subparsers.add_parser(cls.NAME,
-                                       help='Newline-separated text corpus')
-        return parser

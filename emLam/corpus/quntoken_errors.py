@@ -71,15 +71,3 @@ class QunTokenErrors(Preprocessor):
                 text = ''
         if text:
             yield text
-
-    @classmethod
-    def parser(cls, subparsers):
-        """Adds the QunToken parameters to the subparser."""
-        parser = subparsers.add_parser(cls.NAME, help='QunToken error logger')
-        parser.add_argument('quntoken', help='the quntoken binary.')
-        parser.add_argument('--max-length', '-l', type=int, default=10000,
-                            help='the length of a text chunk to send to GATE '
-                                 '[10000].')
-        parser.add_argument('--tmp-dir', default='/dev/shm',
-                            help='the directory used to create temporary '
-                                 'files [/dev/shm].')

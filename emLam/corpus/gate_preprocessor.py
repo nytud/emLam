@@ -57,27 +57,6 @@ class GATEPreprocessor(Preprocessor):
             yield self.gate.parse(text)
 
     @classmethod
-    def parser(cls, subparsers):
-        """Adds the GATE server parameters to the subparser."""
-        # Double % because argparse uses 'str % params'-style formatting
-        parser = subparsers.add_parser(cls.NAME, help='GATE preprocessor')
-        parser.add_argument('--gate-props', '-G', required=True,
-                            help='the hunlp-GATE property file used to '
-                                 'start the server. If there is a "%%" in '
-                                 'the file name, it will be replaced by the '
-                                 'id of the current process. This feature '
-                                 'should be used in a multiprocessing '
-                                 'setting.')
-        parser.add_argument('--max-length', '-l', type=int, default=10000,
-                            help='the length of a text chunk to send to GATE '
-                                 '[10000].')
-        parser.add_argument('--restart-every', '-r', metavar='N', type=int,
-                            default=0,
-                            help='restart the GATE server after every N '
-                                 'sentences to avoid OutOfMemoryException '
-                                 '[0].')
-
-    @classmethod
     def instantiate(cls, process_id=1, **kwargs):
         mod_args = dict(kwargs)
         mod_args['gate_props'] = kwargs['gate_props'].replace('%', str(process_id))

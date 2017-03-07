@@ -121,10 +121,3 @@ class MNSZ2Corpus(RawCorpus):
             s = MNSZ2Corpus.html_parser.unescape(s)
             # s = s.replace('\n', ' ')
             return s.strip()
-
-    @classmethod
-    def child_parser(cls, subparsers):
-        parser = subparsers.add_parser(cls.NAME, help='Hungarian National Corpus')
-        parser.add_argument('--foreign', '-f', action='store_true',
-                            help='include paragraphs marked with lang=foreign')
-        return parser
