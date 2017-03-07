@@ -25,7 +25,7 @@ class GATEPreprocessor(Preprocessor):
         processing process, not in the main one.
         """
         if not self.gate:
-            self.gate = Gate(self.gate_props, self.restart_every, logger=self.logger)
+            self.gate = Gate(self.gate_props, self.restart_every)
 
     def cleanup(self):
         if self.gate:
