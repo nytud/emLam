@@ -16,7 +16,7 @@ from emLam.corpus import get_all_corpora, get_all_preprocessors
 from emLam.corpus.corpus_base import GoldCorpus
 from emLam.corpus.preprocessor_base import CopyPreprocessor
 from emLam.utils import run_queued, setup_queue_logger
-from emLam.utils.config import handle_errors, load_config
+from emLam.utils.config import cascade_section, handle_errors, load_config
 
 
 def usage_epilog(corpora, preprocessors):
@@ -75,7 +75,6 @@ def parse_arguments():
     config, warnings, errors = load_config(
         args.configuration, 'preprocess_corpus.schema',
         retain=[args.corpus.name, args.preprocessor.name])
-    print(config, warnings, errors)
     handle_errors(warnings, errors)
 
     return args, config
@@ -117,9 +116,10 @@ def process_file(components, queue, logging_level=None, logging_queue=None):
     logger = setup_queue_logger(logging_level, logging_queue)
 
     # Then we can instantiate the objects that do the actual work
-    corpus = corpus_cls.instantiate(pid, **config.get(corpus_cls.name, {}))
+    corpus = corpus_cls.instantiate(
+        pid, **cascade_section(config, corpus_cls.name))
     preprocessor = preprocessor_cls.instantiate(
-        pid, **config.get(preprocessor_cls.name, {}))
+        pid, **cascade_section(config, preprocessor_cls.name))
     preprocessor.initialize()
     try:
         while True:

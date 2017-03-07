@@ -26,7 +26,10 @@ def get_config_file(config_file):
 
 
 def handle_errors(warnings, errors, stream=sys.stderr, exit=True):
-    """Handles errors and warnings."""
+    """
+    Handles errors and warnings. Both are written to the stream specified; if
+    exit is True, the program is stopped on any error.
+    """
     if warnings:
         print('Warnings:', file=stream)
         for warning in warnings:
@@ -78,3 +81,32 @@ def load_config(config_file, schema, postprocessing=None, retain=None, drop=None
             errors.append('{}: {}'.format(
                 '.'.join((chain(sections, [key]))), error))
     return config, warnings, errors
+
+
+def __find_section(configobj, section, path=[]):
+    """Finds the path in the section tree to a specific section."""
+    for k, v in configobj.items():
+        if isinstance(v, dict):
+            found_path = __find_section(v, section, path + [k])
+            if found_path[-1] == section:
+                return found_path
+    else:
+        return path
+
+
+def cascade_section(configobj, section):
+    """
+    Returns the dictionary of a section, with all keys from the parents
+    "cascaded" down to it.
+    """
+    path = __find_section(configobj, section)
+    if path:
+        ret = {}
+        for sec in path:
+            configobj = configobj[sec]
+            for k, v in configobj.items():
+                if not isinstance(v, dict):
+                    ret[k] = v
+        return ret
+    else:
+        raise ValueError('No section {} in the configuration.'.format(section))
