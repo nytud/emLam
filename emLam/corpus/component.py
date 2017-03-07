@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""An instantiable component. Also has bindings for ArgumentParser."""
+"""An instantiable component. See the docstring for the class."""
 
 from __future__ import absolute_import, division, print_function
 from future.utils import with_metaclass
@@ -21,7 +21,11 @@ class NamedClass(type):
         return getattr(cls, 'DESCRIPTION', None)
 
 class Component(with_metaclass(NamedClass, object)):
-    """Base class for corpus objects."""
+    """
+    Base class for corpus and preprocessor objects. All corpus and preprocessor
+    classes must be subclasses of Component. Also, multiple inheritence is
+    discouraged, as it may break some parts of the code.
+    """
     def __init__(self):
         self.logger = logging.getLogger(inspect.getmodule(self).__name__)
         self.logger.setLevel(self.logger.parent.level)

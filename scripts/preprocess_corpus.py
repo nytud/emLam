@@ -8,6 +8,8 @@ Webcorpus and MNSZ2.
 from __future__ import absolute_import, division, print_function
 from builtins import range
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from functools import partial
+import inspect
 import os
 import os.path as op
 from queue import Empty
@@ -21,13 +23,29 @@ from emLam.utils.config import cascade_section, handle_errors, load_config
 
 def usage_epilog(corpora, preprocessors):
     """Describes the various Corpus and Preprocessor classes available."""
-    cformat = '{{:<{}}} - {{}}'.format(max(len(name) for name, _ in corpora.items()))
-    pformat = '{{:<{}}} - {{}}'.format(max(len(name) for name, _ in preprocessors.items()))
+    cformat = '{{:<{}}} - {{}}'.format(max(len(name) for name in corpora.keys()))
+    pformat = '{{:<{}}} - {{}}'.format(max(len(name) for name in preprocessors.keys()))
     c = '\nThe following corpora are available:\n' + '\n'.join(
-        cformat.format(name, cls.description) for name, cls in corpora.items())
+        cformat.format(name, cls_path[0].description) for name, cls_path
+        in corpora.items())
     p = '\nThe following preprocessors are available:\n' + '\n'.join(
-        pformat.format(name, cls.description) for name, cls in preprocessors.items())
+        pformat.format(name, cls_path[0].description) for name, cls_path
+        in preprocessors.items())
     return c + '\n' + p
+
+
+def config_pp(config, warnings, errors, class_paths):
+    """
+    Postprocessing function for the configuration: makes sure that it has
+    sections for the selected corpus and preprocessor. Not all components have
+    sections in the configuration; examples include the text corpus and the copy
+    preprocessor. However, since properties are inherited from the ancestor
+    classes, we need to know their full path later.
+    """
+    for path in class_paths:
+        cfg = config
+        for section in path:
+            cfg = cfg.setdefault(section, {})
 
 
 def parse_arguments():
@@ -43,11 +61,11 @@ def parse_arguments():
     parser.add_argument('--target-dir', '-t', required=True,
                         help='the target directory.')
     parser.add_argument('--corpus', '-c', required=True,
-                        choices=[c for c, _ in corpora.items()],
+                        choices=[c for c in corpora.keys()],
                         help='the corpus to preprocess. See below for a '
                              'description of the available corpora.')
     parser.add_argument('--preprocessor', '-p', required=True,
-                        choices=[p for p, _ in preprocessors.items()],
+                        choices=[p for p in preprocessors.keys()],
                         help='the preprocessor to use. See below for a '
                              'description of the available options.')
     parser.add_argument('--configuration', '-C', required=True,
@@ -62,8 +80,8 @@ def parse_arguments():
     if args.source_dir == args.target_dir:
         parser.error('Source and target directories must differ.')
 
-    args.corpus = corpora[args.corpus]
-    args.preprocessor = preprocessors[args.preprocessor]
+    args.corpus, corpus_path = corpora[args.corpus]
+    args.preprocessor, preprocessor_path = preprocessors[args.preprocessor]
     if (
         issubclass(args.corpus, GoldCorpus) and
         args.preprocessor != CopyPreprocessor
@@ -74,7 +92,9 @@ def parse_arguments():
     # Config file
     config, warnings, errors = load_config(
         args.configuration, 'preprocess_corpus.schema',
-        retain=[args.corpus.name, args.preprocessor.name])
+        retain=[args.corpus.name, args.preprocessor.name],
+        postprocessing=partial(config_pp,
+                               class_paths=[corpus_path, preprocessor_path]))
     handle_errors(warnings, errors)
 
     return args, config
