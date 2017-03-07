@@ -9,7 +9,6 @@ from __future__ import absolute_import, division, print_function
 from builtins import range
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from functools import partial
-import inspect
 import os
 import os.path as op
 from queue import Empty

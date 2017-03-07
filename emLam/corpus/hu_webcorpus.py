@@ -71,7 +71,7 @@ class Webcorpus(RawCorpus):
                             entities, amps, len(text), entities / float(len(text)),
                             entities / float(len(text)) > self.max_entities,
                             text.strip(), orig_text.strip()).encode('utf-8'))
-                    if len(text) >entities / float(len(text)) > self.max_entities:
+                    if entities / float(len(text)) > self.max_entities:
                         # Skip sentence if too many entities (i.e. foreign script)
                         continue
                 clean_text = self.__clean_text(text)

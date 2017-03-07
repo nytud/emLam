@@ -21,7 +21,8 @@ class Preprocessor(Component):
         to output_stream.
         """
         raise NotImplementedError(
-            'preprocess() must be implemented in class {}'.format(cls.__name__))
+            'preprocess() must be implemented in class {}'.format(
+                self.__class__.__name__))
 
     def cleanup(self):
         """The opposite of initialize()."""

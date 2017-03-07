@@ -2,7 +2,6 @@
 """Preprocessing steps for the Szeged corpus."""
 
 from __future__ import absolute_import, division, print_function
-from builtins import map
 
 from emLam import WORD, LEMMA, LEMMA_POS
 from emLam.corpus.corpus_base import GoldCorpus

@@ -3,7 +3,6 @@
 
 from __future__ import absolute_import, division, print_function
 
-from emLam.corpus import get_all_preprocessors
 from emLam.corpus.component import Component
 from emLam.corpus.multi_file_writer import MultiFileWriter
 from emLam.utils import openall
