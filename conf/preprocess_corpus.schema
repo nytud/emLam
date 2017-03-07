@@ -4,6 +4,11 @@
 # Manually annotated corpora
 [[GoldCorpus]]
 
+[[[hu_szeged]]]
+# Keep all columns. By default, the output files will only have 3 columns:
+# word, lemma, POS.
+keep_columns = boolean(default=no)
+
 # Raw text corpora
 [[RawCorpus]]
 # If greater than 0, the output will be written to a series of files, each
@@ -14,20 +19,12 @@ max_lines = integer(min=0, default=0)
 # Include paragraphs marked with lang=foreign.
 foreign = boolean(default=no)
 
-[[[hu_szeged]]]
-# Keep all columns. By default, the output files will only have 3 columns:
-# word, lemma, POS.
-keep_columns = boolean(default=no)
-
 [[[hu_webcorpus]]]
 # The source directory contains the uncompressed corpus (1 file per document).
 # Not recommended; by default, the preprocessor expects tar.gz files.
 compressed = boolean(default=yes)
 # The HTML entity / characters ratio above which a sentence is discarded.
 max_entities = float(min=0, max=1, default=0.2)
-
-# Generic newline-separated text corpus
-[[[text]]]
 
 # Preprocessor settings
 [Preprocessor]
