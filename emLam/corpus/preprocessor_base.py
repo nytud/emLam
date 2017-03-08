@@ -21,7 +21,8 @@ class Preprocessor(Component):
         to output_stream.
         """
         raise NotImplementedError(
-            'preprocess() must be implemented in class {}'.format(cls.__name__))
+            'preprocess() must be implemented in class {}'.format(
+                self.__class__.__name__))
 
     def cleanup(self):
         """The opposite of initialize()."""
@@ -31,14 +32,11 @@ class Preprocessor(Component):
 class CopyPreprocessor(Preprocessor):
     """This class simply copies the input to the output."""
     NAME = 'copy'
+    DESCRIPTION = 'copies input lines to the output'
+
     def __init__(self):
         pass
 
     def preprocess(self, input_stream, output_stream):
         for line in input_stream:
             print(line, file=output_stream, end=u'')
-
-    @classmethod
-    def parser(cls, subparsers):
-        parser = subparsers.add_parser(
-            cls.NAME, help='Copies input lines to the output.')

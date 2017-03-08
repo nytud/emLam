@@ -2,7 +2,6 @@
 """Preprocessing steps for the Szeged corpus."""
 
 from __future__ import absolute_import, division, print_function
-from builtins import map
 
 from emLam import WORD, LEMMA, LEMMA_POS
 from emLam.corpus.corpus_base import GoldCorpus
@@ -10,6 +9,7 @@ from emLam.corpus.corpus_base import GoldCorpus
 
 class SzegedCorpus(GoldCorpus):
     NAME = 'hu_szeged'
+    DESCRIPTION = 'Szeged Treebank'
 
     def __init__(self, keep_columns):
         self.keep_columns = keep_columns
@@ -32,11 +32,3 @@ class SzegedCorpus(GoldCorpus):
                 if self.keep_columns:
                     out_fields.extend(fields[2:-1])
                 yield u'\t'.join(out_fields)
-
-    @classmethod
-    def child_parser(cls, subparsers):
-        parser = subparsers.add_parser(cls.NAME, help='Szeged Treebank')
-        parser.add_argument('--keep-columns', '-k', action='store_true',
-                            help='keep all columns. By default, the output files '
-                                 'will only have 3 columns: word, lemma, POS.')
-        return parser

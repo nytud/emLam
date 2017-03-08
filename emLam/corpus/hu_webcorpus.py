@@ -16,6 +16,8 @@ from emLam.utils import openall
 
 class Webcorpus(RawCorpus):
     NAME = 'hu_webcorpus'
+    DESCRIPTION = 'Hungarian Webcorpus'
+
     rename_p = re.compile(r'\.tar(\.gz)$')
 
     def __init__(self, max_lines, compressed=True, max_entities=0.2):
@@ -69,7 +71,7 @@ class Webcorpus(RawCorpus):
                             entities, amps, len(text), entities / float(len(text)),
                             entities / float(len(text)) > self.max_entities,
                             text.strip(), orig_text.strip()).encode('utf-8'))
-                    if len(text) >entities / float(len(text)) > self.max_entities:
+                    if entities / float(len(text)) > self.max_entities:
                         # Skip sentence if too many entities (i.e. foreign script)
                         continue
                 clean_text = self.__clean_text(text)
@@ -93,20 +95,6 @@ class Webcorpus(RawCorpus):
                 continue
             clean_text.append(c if not cat.startswith('Z') else ' ')
         return u''.join(clean_text)
-
-    @classmethod
-    def child_parser(cls, subparsers):
-        parser = subparsers.add_parser('hu_webcorpus', help='Hungarian Webcorpus')
-        parser.add_argument('--uncompressed', '-u', action='store_false',
-                            dest='compressed',
-                            help='the source directory contains the uncompressed '
-                                 'corpus (1 file per document). Not recommended; '
-                                 'by default, the preprocessor expects '
-                                 'tar.gz files.')
-        parser.add_argument('--max-entities', '-m', type=float, default=0.2,
-                            help='the HTML entity / characters ratio above '
-                                 'which a sentence is discarded.')
-        return parser
 
     @staticmethod
     def enumerate_tar(archive):

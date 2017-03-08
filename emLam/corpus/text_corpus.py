@@ -14,6 +14,7 @@ from emLam.corpus.hacks import split_for_qt
 
 class TextCorpus(RawCorpus):
     NAME = 'text'
+    DESCRIPTION = 'generic newline-separated text corpus'
 
     @contextmanager
     def instream(self, input_file):
@@ -34,9 +35,3 @@ class TextCorpus(RawCorpus):
                         for chunk in split_for_qt(u'\n'.join(lines)):
                             yield chunk
         yield __instream()
-
-    @classmethod
-    def child_parser(cls, subparsers):
-        parser = subparsers.add_parser(cls.NAME,
-                                       help='Newline-separated text corpus')
-        return parser

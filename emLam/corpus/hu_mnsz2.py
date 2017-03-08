@@ -20,6 +20,8 @@ binary_type = str if sys.version_info < (3,) else bytes
 
 class MNSZ2Corpus(RawCorpus):
     NAME = 'hu_mnsz2'
+    DESCRIPTION = 'Hungarian National Corpus'
+
     html_parser = HTMLParser()
     spaces = re.compile(r'[ \t]+')
     empty_lines = re.compile(r'\n[ \t]+\n')
@@ -119,10 +121,3 @@ class MNSZ2Corpus(RawCorpus):
             s = MNSZ2Corpus.html_parser.unescape(s)
             # s = s.replace('\n', ' ')
             return s.strip()
-
-    @classmethod
-    def child_parser(cls, subparsers):
-        parser = subparsers.add_parser(cls.NAME, help='Hungarian National Corpus')
-        parser.add_argument('--foreign', '-f', action='store_true',
-                            help='include paragraphs marked with lang=foreign')
-        return parser
