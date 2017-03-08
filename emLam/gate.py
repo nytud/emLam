@@ -9,11 +9,13 @@ except:
     from ConfigParser import RawConfigParser
 from future.moves.urllib.parse import urlencode
 from io import open, BytesIO, StringIO
+import json
 import logging
 import os
 import re
 from subprocess import Popen
 import time
+import warnings
 
 from lxml import etree
 import requests
@@ -44,7 +46,7 @@ class Gate(object):
         self.logger = logging.getLogger('emLam.GATE')
         self.gate_props = gate_props
         self.gate_dir = os.path.dirname(gate_props)
-        self.gate_url = self._gate_url()
+        self.gate_url = self.__gate_url()
         self.restart_every = restart_every
         self.modules = modules
         self.server = None
@@ -56,7 +58,7 @@ class Gate(object):
         # for ideas on how to replace __del__ with something better (?)
         self.__stop_server()
 
-    def _gate_url(self):
+    def __gate_url(self):
         """Assembles the GATE url from the properties."""
         cp = RawConfigParser({'host': 'localhost', 'port': 8000})
         with open(self.gate_props) as inf:
@@ -143,110 +145,120 @@ class Gate(object):
                 u'Number of tries exceeded with server {}'.format(self.gate_props))
 
 
-def parse_gate_xml_file(xml_file, get_anas='no'):
-    """
-    Parses a GATE response from a file. We use a SAX(-like?) parser, because
-    only iterparse() provide the huge_tree argument, and it is needed sometimes
-    if the analysis for a word is too long. Much uglier than the dom-based
-    solution, but what can one do?
-    """
-    logger = logging.getLogger('emLam.GATE')
-    text, sent = [], []
-    token_feats = {'string': 0, 'lemma': 1, 'hfstana': 2}
-    if get_anas != 'no':
-        token_feats['anas'] = 3
-    curr_token_feat = None
-    tup = None
-    annotation_id = None
-    for event, node in etree.iterparse(xml_file, huge_tree=True, events=['start', 'end']):
-        if event == 'start':
-            if node.tag == 'Annotation':
-                if node.get('Type') == 'Token':
-                    tup = [None, None, None, None]
-                    annotation_id = node.get('Id')
-        else:  # end
-            if node.tag == 'Annotation':
-                if node.get('Type') == 'Token':
-                    # The lemma might be None
-                    if tup[LEMMA] is None:
-                        tup[LEMMA] = tup[WORD]
-                    if get_anas != 'no':
-                        # If requested, find the analysis that matches lemma & POS
-                        word, lemma, pos, anas = tup
-                        if anas:
-                            for ana in anas.split(';'):
-                                try:
-                                    a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
-                                except:
-                                    logger.exception(
-                                        u'Strange ana {} / {} {} [{}]'.format(
-                                            ana, lemma, pos, annotation_id))
-                                    raise
-                                if a_pos == pos and a_lemma == lemma:
-                                    # This is the right analysis
-                                    break
-                            else:
-                                a_ana = ''
-                                # No matching analysis
-                        else:
-                            a_ana = ''
-                            # Empty anas
-                        tup[-1] = a_ana
-                    sent.append(tup[:len(token_feats)])
-                    tup = None
-                elif node.get('Type') == 'Sentence':
-                    text.append(sent)
-                    sent = []
-                annotation_id = None
-            elif node.tag == 'Name' and tup and node.text in token_feats:
-                curr_token_feat = node.text
-            elif node.tag == 'Value' and curr_token_feat:
-                tup[token_feats[curr_token_feat]] = node.text
-                curr_token_feat = None
-    return text
-
-
-def parse_gate_xml_file_dom(xml_file, get_anas='no'):
-    """Parses a GATE response from a file."""
-    logger = logging.getLogger('emLam.GATE')
-    dom = etree.parse(xml_file)
-    root = dom.getroot()
-    text, sent = [], []
-    for a in root.xpath('./AnnotationSet/Annotation[@Type!="SpaceToken"]'):
-        if a.attrib['Type'] == 'Token':
-            word = a.find('Feature[Name="string"]').find('Value').text
-            lemma = a.find('Feature[Name="lemma"]').find('Value').text
-            pos = a.find('Feature[Name="hfstana"]').find('Value').text
-            tup = [word, lemma if lemma else word, pos]
-            if get_anas != 'no':
-                anas = a.find('Feature[Name="anas"]').find('Value').text or ''
-                if anas:
-                    for ana in anas.split(';'):
-                        try:
-                            a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
-                        except:
-                            logger.exception(u'Strange ana {} / {} {}'.format(
-                                ana, lemma, pos))
-                            raise
-                        if a_pos == pos and a_lemma == lemma:
-                            # This is the right analysis
-                            tup.append(a_ana)
-                            break
-                    else:
-                        tup.append('')
-                        # print('Could not find the analysis for: {} / {} {}'.format(
-                        #         anas, lemma, pos))
-                else:
-                    tup.append('')
-                    # print('Could not find anas for {} {}'.format(
-                    #     lemma, pos))
-            sent.append(tup)
+class GateOutputParser(object):
+    """Class for parsing the GATE output XML."""
+    def __init__(self, gate_version=8.4):
+        if gate_version >= 8.4:
+            self.parse_anas = self.__parse_anas_8_4
         else:
-            text.append(sent)
-            sent = []
-    return text
+            self.parse_anas = self.__parse_anas_8_2
 
+    def parse_gate_xml_file(self, xml_file, get_anas='no'):
+        """
+        Parses a GATE response from a file. We use a SAX(-like?) parser, because
+        only iterparse() provide the huge_tree argument, and it is needed sometimes
+        if the analysis for a word is too long. Much uglier than the dom-based
+        solution, but what can one do?
+        """
+        logger = logging.getLogger('emLam.GATE')
+        text, sent = [], []
+        token_feats = {'string': 0, 'lemma': 1, 'hfstana': 2, 'anas': 3}
+        curr_token_feat = None
+        tup = None
+        annotation_id = None
+        for event, node in etree.iterparse(xml_file, huge_tree=True, encoding='utf-8', events=['start', 'end']):
+            if event == 'start':
+                if node.tag == 'Annotation':
+                    if node.get('Type') == 'Token':
+                        tup = [None, None, None, None]
+                        annotation_id = node.get('Id')
+            else:  # end
+                if node.tag == 'Annotation':
+                    if node.get('Type') == 'Token':
+                        # The lemma might be None
+                        if tup[LEMMA] is None:
+                            tup[LEMMA] = tup[WORD]
+                        sent.append(self.extract_anas(tup, get_anas))
+                        tup = None
+                    elif node.get('Type') == 'Sentence':
+                        text.append(sent)
+                        sent = []
+                    annotation_id = None
+                elif node.tag == 'Name' and tup and node.text in token_feats:
+                    curr_token_feat = node.text
+                elif node.tag == 'Value' and curr_token_feat:
+                    tup[token_feats[curr_token_feat]] = node.text
+                    curr_token_feat = None
+        return text
 
-def parse_gate_xml(xml, anas='no'):
-    """Parses a GATE response from memory."""
-    return parse_gate_xml_file(BytesIO(xml), anas)
+    def parse_gate_xml_file_dom(self, xml_file, get_anas='no'):
+        """
+        Parses a GATE response from a file. Deprecated in favor of
+        parse_gate_xml_file().
+        """
+        warnings.warn('parse_gate_xml_file_dom() is deprecated, as it '
+                      'cannot handle arbirarily large large inputs. Use '
+                      'parse_gate_xml_file() instead.', DeprecationWarning)
+        logger = logging.getLogger('emLam.GATE')
+        dom = etree.parse(xml_file)
+        root = dom.getroot()
+        text, sent = [], []
+        for a in root.xpath('./AnnotationSet/Annotation[@Type!="SpaceToken"]'):
+            if a.attrib['Type'] == 'Token':
+                word = a.find('Feature[Name="string"]').find('Value').text
+                lemma = a.find('Feature[Name="lemma"]').find('Value').text
+                pos = a.find('Feature[Name="hfstana"]').find('Value').text
+                anas = a.find('Feature[Name="anas"]').find('Value').text or ''
+                tup = [word, lemma if lemma else word, pos, anas]
+                sent.append(self.extract_anas(tup, get_anas))
+            else:
+                text.append(sent)
+                sent = []
+        return text
+
+    def parse_gate_xml(self, xml, anas='no'):
+        """Parses a GATE response from memory."""
+        return parse_gate_xml_file(BytesIO(xml), anas)
+
+    def extract_anas(self, tup, get_anas):
+        """Extracts the anas and writes them back to tup as a json list."""
+        if get_anas != 'no':
+            word, lemma, pos, anas = tup
+            if anas:
+                all_anas = self.parse_anas(anas)
+            else:
+                all_anas = []
+            if get_anas == 'matching':
+                all_anas = [a for a in all_anas if
+                            a['lemma'] == lemma and a['feats'] == pos]
+            tup[-1] = json.dumps(all_anas)
+        else:
+            tup = tup[:-1]
+        return tup
+
+    def __parse_anas_8_2(self, anas):
+        """Extracts the anas from the output of GATE 8.2 or below."""
+        ret = []
+        for ana in anas.split(';'):
+            try:
+                a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
+                ret.append({'ana': a_ana, 'feats': a_pos, 'lemma': a_lemma})
+            except:
+                logger.exception(
+                    u'Strange ana {} / {} {} [{}]'.format(
+                        ana, lemma, pos, annotation_id))
+                raise
+        return ret
+
+    def __parse_anas_8_4(self, anas):
+        """Extracts the anas from the output of GATE 8.4 or above."""
+        ret = []
+        for all_ana in etree.fromstring(anas):
+            for ana in all_ana:
+                feats = {}
+                for entry in ana:
+                    feat = entry.xpath('./string')[0].text
+                    value = entry.xpath('./string')[1].text
+                    feats[feat] = value
+                ret.append(feats)
+        return ret
