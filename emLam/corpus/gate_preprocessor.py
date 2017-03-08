@@ -12,11 +12,12 @@ class GATEPreprocessor(Preprocessor):
     NAME = 'GATE'
     DESCRIPTION = 'GATE preprocessor'
 
-    def __init__(self, gate_props, max_length=10000, restart_every=0):
+    def __init__(self, gate_props, max_length=10000, restart_every=0, anas='no'):
         super(GATEPreprocessor, self).__init__()
         self.gate_props = gate_props
         self.max_length = max_length
         self.restart_every = restart_every
+        self.anas = anas
         self.gate = None
 
     def initialize(self):
@@ -51,10 +52,10 @@ class GATEPreprocessor(Preprocessor):
         for txt in input_stream:
             text += txt
             if len(text) > self.max_length:
-                yield self.gate.parse(text)
+                yield self.gate.parse(text, anas)
                 text = ''
         if text:
-            yield self.gate.parse(text)
+            yield self.gate.parse(text, anas)
 
     @classmethod
     def instantiate(cls, process_id=1, **kwargs):

@@ -40,7 +40,7 @@ corenlp_props = string()
 max_length = integer(default=10000)
 
 [[GATE]]
-# The hunlp-GATE property file used to start the server. If there is a "%%" in
+# The hunlp-GATE property file used to start the server. If there is a "%" in
 # the file name, it will be replaced by the id of the current process. This
 # feature should be used in a multiprocessing setting.
 # TODO include it instead as a section.
@@ -50,6 +50,9 @@ max_length = integer(default=10000)
 # Restart the GATE server after every N sentences to avoid OutOfMemoryException
 # (should not happen anymore, though).
 restart_every = integer(min=0, default=0)
+# Whether to retrieve the anas field, and if yes, which ones (matching: only
+# those that match the ML analysis; "all": all).
+anas = option("no", "matching", "all", default="no")
 
 # Logs input that segfaults Quntoken.
 [[qt_errors]]

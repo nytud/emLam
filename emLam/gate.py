@@ -89,7 +89,7 @@ class Gate(object):
         self.__stop_server()
         self.__start_server()
 
-    def parse(self, text, anas=False):
+    def parse(self, text, anas='no'):
         """Parses a text with a running GATE server."""
         if not self.server:
             self.__start_server()
@@ -143,7 +143,7 @@ class Gate(object):
                 u'Number of tries exceeded with server {}'.format(self.gate_props))
 
 
-def parse_gate_xml_file(xml_file, get_anas=False):
+def parse_gate_xml_file(xml_file, get_anas='no'):
     """
     Parses a GATE response from a file. We use a SAX(-like?) parser, because
     only iterparse() provide the huge_tree argument, and it is needed sometimes
@@ -153,7 +153,7 @@ def parse_gate_xml_file(xml_file, get_anas=False):
     logger = logging.getLogger('emLam.GATE')
     text, sent = [], []
     token_feats = {'string': 0, 'lemma': 1, 'hfstana': 2}
-    if get_anas:
+    if get_anas != 'no':
         token_feats['anas'] = 3
     curr_token_feat = None
     tup = None
@@ -170,7 +170,7 @@ def parse_gate_xml_file(xml_file, get_anas=False):
                     # The lemma might be None
                     if tup[LEMMA] is None:
                         tup[LEMMA] = tup[WORD]
-                    if get_anas:
+                    if get_anas != 'no':
                         # If requested, find the analysis that matches lemma & POS
                         word, lemma, pos, anas = tup
                         if anas:
@@ -206,7 +206,7 @@ def parse_gate_xml_file(xml_file, get_anas=False):
     return text
 
 
-def parse_gate_xml_file_dom(xml_file, get_anas=False):
+def parse_gate_xml_file_dom(xml_file, get_anas='no'):
     """Parses a GATE response from a file."""
     logger = logging.getLogger('emLam.GATE')
     dom = etree.parse(xml_file)
@@ -218,7 +218,7 @@ def parse_gate_xml_file_dom(xml_file, get_anas=False):
             lemma = a.find('Feature[Name="lemma"]').find('Value').text
             pos = a.find('Feature[Name="hfstana"]').find('Value').text
             tup = [word, lemma if lemma else word, pos]
-            if get_anas:
+            if get_anas != 'no':
                 anas = a.find('Feature[Name="anas"]').find('Value').text or ''
                 if anas:
                     for ana in anas.split(';'):
@@ -247,6 +247,6 @@ def parse_gate_xml_file_dom(xml_file, get_anas=False):
     return text
 
 
-def parse_gate_xml(xml, anas=False):
+def parse_gate_xml(xml, anas='no'):
     """Parses a GATE response from memory."""
     return parse_gate_xml_file(BytesIO(xml), anas)
