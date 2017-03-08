@@ -52,7 +52,7 @@ class GATEPreprocessor(Preprocessor):
         for txt in input_stream:
             text += txt
             if len(text) > self.max_length:
-                yield self.gate.parse(text, anas)
+                yield self.gate.parse(text, self.anas)
                 text = ''
         if text:
             yield self.gate.parse(text, anas)
