@@ -33,7 +33,8 @@ class GateError(Exception):
 class Gate(object):
     """hunlp-GATE interface object."""
     def __init__(self, gate_props, restart_every=None,
-                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode'):
+                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode',
+                 gate_version=8.4):
         """
         gate_props is the name of the GATE properties file. It is suppoesed to
         be in the hunlp-GATE directory.
@@ -51,6 +52,7 @@ class Gate(object):
         self.modules = modules
         self.server = None
         self.parsed = 0
+        self.parser = GateOutputParser(gate_version)
         self.__start_server()
 
     def __del__(self):
@@ -106,7 +108,7 @@ class Gate(object):
             if reply:
                 with open('/dev/shm/xml-{}'.format(os.getpid()), 'wb') as outf:
                     print(reply, file=outf)
-                parsed = parse_gate_xml(reply, anas)
+                parsed = self.parser.parse_gate_xml(reply, anas)
                 if self.restart_every:
                     self.parsed += len(parsed)
                     if self.parsed >= self.restart_every:
@@ -148,6 +150,7 @@ class Gate(object):
 class GateOutputParser(object):
     """Class for parsing the GATE output XML."""
     def __init__(self, gate_version=8.4):
+        self.logger = logging.getLogger('emLam.GATE')
         if gate_version >= 8.4:
             self.parse_anas = self.__parse_anas_8_4
         else:
@@ -160,18 +163,15 @@ class GateOutputParser(object):
         if the analysis for a word is too long. Much uglier than the dom-based
         solution, but what can one do?
         """
-        logger = logging.getLogger('emLam.GATE')
         text, sent = [], []
         token_feats = {'string': 0, 'lemma': 1, 'hfstana': 2, 'anas': 3}
         curr_token_feat = None
         tup = None
-        annotation_id = None
         for event, node in etree.iterparse(xml_file, huge_tree=True, encoding='utf-8', events=['start', 'end']):
             if event == 'start':
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
                         tup = [None, None, None, None]
-                        annotation_id = node.get('Id')
             else:  # end
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
@@ -183,7 +183,6 @@ class GateOutputParser(object):
                     elif node.get('Type') == 'Sentence':
                         text.append(sent)
                         sent = []
-                    annotation_id = None
                 elif node.tag == 'Name' and tup and node.text in token_feats:
                     curr_token_feat = node.text
                 elif node.tag == 'Value' and curr_token_feat:
@@ -199,7 +198,6 @@ class GateOutputParser(object):
         warnings.warn('parse_gate_xml_file_dom() is deprecated, as it '
                       'cannot handle arbirarily large large inputs. Use '
                       'parse_gate_xml_file() instead.', DeprecationWarning)
-        logger = logging.getLogger('emLam.GATE')
         dom = etree.parse(xml_file)
         root = dom.getroot()
         text, sent = [], []
@@ -218,7 +216,7 @@ class GateOutputParser(object):
 
     def parse_gate_xml(self, xml, anas='no'):
         """Parses a GATE response from memory."""
-        return parse_gate_xml_file(BytesIO(xml), anas)
+        return self.parse_gate_xml_file(BytesIO(xml), anas)
 
     def extract_anas(self, tup, get_anas):
         """Extracts the anas and writes them back to tup as a json list."""
@@ -244,9 +242,8 @@ class GateOutputParser(object):
                 a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
                 ret.append({'ana': a_ana, 'feats': a_pos, 'lemma': a_lemma})
             except:
-                logger.exception(
-                    u'Strange ana {} / {} {} [{}]'.format(
-                        ana, lemma, pos, annotation_id))
+                self.logger.exception(
+                    u'Strange ana "{}" in "{}"'.format(ana, anas))
                 raise
         return ret
 
