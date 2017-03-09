@@ -23,7 +23,8 @@ import requests
 from emLam import WORD, LEMMA
 
 
-_anas_p = re.compile(r'{ana=([^}]+), feats=([^}]+])(?:, incorrect=[^,}]+)?, lemma=([^}]+)?}')
+_anas_p = re.compile(r'ana=([^}]+), feats=([^}]+])(?:, incorrect=([^,}]+))?, '
+                     r'lemma=([^}]+)?')
 
 
 class GateError(Exception):
@@ -52,7 +53,7 @@ class Gate(object):
         self.modules = modules
         self.server = None
         self.parsed = 0
-        self.parser = GateOutputParser(gate_version)
+        self.parser = GateOutputParser.get_parser(gate_version)
         self.__start_server()
 
     def __del__(self):
@@ -149,12 +150,16 @@ class Gate(object):
 
 class GateOutputParser(object):
     """Class for parsing the GATE output XML."""
-    def __init__(self, gate_version=8.4):
+    def __init__(self):
         self.logger = logging.getLogger('emLam.GATE')
-        if gate_version >= 8.4:
-            self.parse_anas = self.__parse_anas_8_4
+        self.logger.debug('GATE parser class: {}'.format(self.__class__.__name__))
+
+    @staticmethod
+    def get_parser(gate_version=8.4):
+        if gate_version <= 8.2:
+            return GateOutputParser82()
         else:
-            self.parse_anas = self.__parse_anas_8_2
+            return GateOutputParser84()
 
     def parse_gate_xml_file(self, xml_file, get_anas='no'):
         """
@@ -176,7 +181,7 @@ class GateOutputParser(object):
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
                         # The lemma might be None
-                        if tup[LEMMA] is None:
+                        if tup[LEMMA] is None or '<incorrect_word>' in tup[LEMMA]:
                             tup[LEMMA] = tup[WORD]
                         sent.append(self.extract_anas(tup, get_anas))
                         tup = None
@@ -223,7 +228,7 @@ class GateOutputParser(object):
         if get_anas != 'no':
             word, lemma, pos, anas = tup
             if anas:
-                all_anas = self.parse_anas(anas)
+                all_anas = self.parse_anas(anas, tup)
             else:
                 all_anas = []
             if get_anas == 'matching':
@@ -234,20 +239,38 @@ class GateOutputParser(object):
             tup = tup[:-1]
         return tup
 
-    def __parse_anas_8_2(self, anas):
+    def parse_anas(self, anas, tup):
+        """
+        Extracts the anas. tup is only passed to the function for better error
+        reporting.
+        """
+        raise NotImplementedError('parse_anas() must be implemented.')
+
+
+class GateOutputParser82(GateOutputParser):
+    """Gate output parser for GATE version 8.2 (and below?)."""
+    def parse_anas(self, anas, tup):
         """Extracts the anas from the output of GATE 8.2 or below."""
         ret = []
-        for ana in anas.split(';'):
-            try:
-                a_ana, a_pos, a_lemma = _anas_p.match(ana).groups()
-                ret.append({'ana': a_ana, 'feats': a_pos, 'lemma': a_lemma})
-            except:
-                self.logger.exception(
-                    u'Strange ana "{}" in "{}"'.format(ana, anas))
-                raise
+        if anas:
+            for ana in anas[1:-1].split('};{'):
+                try:
+                    a_ana, a_pos, a_incorrect, a_lemma = _anas_p.match(ana).groups()
+                    feats = {'ana': a_ana, 'feats': a_pos, 'lemma': a_lemma}
+                    if a_incorrect:
+                        feats['incorrect'] = True
+                        feats['lemma'] = tup[WORD]
+                    ret.append(feats)
+                except:
+                    self.logger.exception(
+                        u'Strange ana "{}" in "{}"; {}'.format(ana, anas, tup))
+                    raise
         return ret
 
-    def __parse_anas_8_4(self, anas):
+
+class GateOutputParser84(GateOutputParser):
+    """Gate output parser for GATE version 8.4 (and above?)."""
+    def parse_anas(self, anas, tup):
         """Extracts the anas from the output of GATE 8.4 or above."""
         ret = []
         for all_ana in etree.fromstring(anas):
@@ -257,5 +280,7 @@ class GateOutputParser(object):
                     feat = entry.xpath('./string')[0].text
                     value = entry.xpath('./string')[1].text
                     feats[feat] = value
+                if feats.get('incorrect'):
+                    feats['lemma'] = tup[WORD]
                 ret.append(feats)
         return ret

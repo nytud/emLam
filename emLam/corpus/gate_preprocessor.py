@@ -12,13 +12,15 @@ class GATEPreprocessor(Preprocessor):
     NAME = 'GATE'
     DESCRIPTION = 'GATE preprocessor'
 
-    def __init__(self, gate_props, max_length=10000, restart_every=0, anas='no'):
+    def __init__(self, gate_props, max_length=10000, restart_every=0, anas='no',
+                 gate_version=8.4):
         super(GATEPreprocessor, self).__init__()
         self.gate_props = gate_props
         self.max_length = max_length
         self.restart_every = restart_every
         self.anas = anas
         self.gate = None
+        self.gate_version = gate_version
 
     def initialize(self):
         """
@@ -26,7 +28,8 @@ class GATEPreprocessor(Preprocessor):
         processing process, not in the main one.
         """
         if not self.gate:
-            self.gate = Gate(self.gate_props, self.restart_every)
+            self.gate = Gate(self.gate_props, self.restart_every,
+                             gate_version=self.gate_version)
 
     def cleanup(self):
         if self.gate:
@@ -55,7 +58,7 @@ class GATEPreprocessor(Preprocessor):
                 yield self.gate.parse(text, self.anas)
                 text = ''
         if text:
-            yield self.gate.parse(text, anas)
+            yield self.gate.parse(text, self.anas)
 
     @classmethod
     def instantiate(cls, process_id=1, **kwargs):
