@@ -53,6 +53,8 @@ restart_every = integer(min=0, default=0)
 # Whether to retrieve the anas field, and if yes, which ones (matching: only
 # those that match the ML analysis; "all": all).
 anas = option("no", "matching", "all", default="no")
+# The GATE version
+gate_version = float(min=8, default=8.4)
 
 # Logs input that segfaults Quntoken.
 [[qt_errors]]
