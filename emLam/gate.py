@@ -33,7 +33,7 @@ class GateError(Exception):
 
 class Gate(object):
     """hunlp-GATE interface object."""
-    def __init__(self, gate_props, restart_every=None,
+    def __init__(self, gate_props, restart_every=0,
                  modules='QT,HFSTLemm,ML3-PosLem-hfstcode',
                  gate_version=8.4):
         """
@@ -89,7 +89,7 @@ class Gate(object):
             self.logger.info('Stopped server {}'.format(self.gate_props))
         self.server = None
 
-    def __restart_server(self):
+    def restart_server(self):
         self.logger.debug('Restarting server {}'.format(self.gate_props))
         self.__stop_server()
         self.__start_server()

@@ -12,15 +12,28 @@ class GATEPreprocessor(Preprocessor):
     NAME = 'GATE'
     DESCRIPTION = 'GATE preprocessor'
 
-    def __init__(self, gate_props, max_length=10000, restart_every=0, anas='no',
-                 gate_version=8.4):
+    def __init__(self, gate_props, max_length=10000, restart_every='no',
+                 restart_at=0, anas='no', gate_version=8.4):
         super(GATEPreprocessor, self).__init__()
         self.gate_props = gate_props
         self.max_length = max_length
-        self.restart_every = restart_every
         self.anas = anas
         self.gate = None
+        self.files_read = 0
         self.gate_version = gate_version
+
+        # When to restart. File is handled here, line in the GATE object.
+        self.restart_file = 0
+        self.restart_line = 0
+        if restart_at:
+            if restart_every == 'file':
+                self.restart_file = restart_at
+                self.logger.info('Restarting server after every '
+                                 '{} file(s).'.format(restart_at))
+            elif restart_every == 'line':
+                self.restart_line = restart_at
+                self.logger.info('Restarting server after every '
+                                 '{} line(s).'.format(restart_at))
 
     def initialize(self):
         """
@@ -28,7 +41,7 @@ class GATEPreprocessor(Preprocessor):
         processing process, not in the main one.
         """
         if not self.gate:
-            self.gate = Gate(self.gate_props, self.restart_every,
+            self.gate = Gate(self.gate_props, self.restart_line,
                              gate_version=self.gate_version)
 
     def cleanup(self):
@@ -44,6 +57,12 @@ class GATEPreprocessor(Preprocessor):
             print(u'\n\n'.join(u'\n'.join(u'\t'.join(token) for token in sent)
                                for sent in parsed),
                   file=output_stream)
+        self.files_read += 1
+        if (
+            self.restart_file and self.files_read and
+            self.files_read % self.restart_file == 0
+        ):
+            self.gate.restart_server()
 
     def __parse_with_gate(self, input_stream):
         """
