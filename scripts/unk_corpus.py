@@ -149,7 +149,7 @@ if __name__ == '__main__':
     if not os.path.isdir(target_dir):
         os.makedirs(target_dir)
 
-    files = source_target_file_list(args.source_dir, args.target_dir):
+    files = source_target_file_list(args.source_dir, args.target_dir)
     if n:
         unk_first(source_files, pos_files, target_files, n)
     else:

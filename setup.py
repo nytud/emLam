@@ -73,8 +73,10 @@ setup(name='emlam',
           # Python 2/3 compatibility
           'future', 'six',
           # Communication with GATE; an earlier lxml version is broken, but
-          # I don't know which; >=3.6 might be enough.
-          'requests', 'lxml>=3.6.4',
+          'requests',
+          # An earlier version was broken (don't remember which); also,
+          # iterparse is broken in 3.7.3. :)
+          'lxml==3.6.4',
           # Better configuration files.
           'configobj'
       ],

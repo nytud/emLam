@@ -10,7 +10,7 @@ problem for the kind of per-sentence modeling we want to do.
 """
 
 from __future__ import absolute_import, division, print_function
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from operator import itemgetter
 import os
 
@@ -32,14 +32,17 @@ def parse_arguments():
                 return False
         return True
 
-    parser = ArgumentParser(description=__doc__)
+    parser = ArgumentParser(
+        description=__doc__,
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument('--source-dir', '-s', required=True,
                         help='the source directory.')
     parser.add_argument('--target-dir', '-t', required=True,
                         help='the target directory.')
     parser.add_argument('--field', '-f', type=int, default=0,
                         help='the (zero-based) index of the column used for '
-                             'determining which lines match [0].')
+                             'determining which lines match.')
     parser.add_argument('--log-level', '-L', type=str, default=None,
                         choices=['debug', 'info', 'warning', 'error', 'critical'],
                         help='the logging level.')
