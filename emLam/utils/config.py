@@ -110,3 +110,33 @@ def cascade_section(configobj, section):
         return ret
     else:
         raise ValueError('No section {} in the configuration.'.format(section))
+
+
+def get_value(configobj, path):
+    """
+    Returns the value specified by the full path to the key (specified as an
+    iterable). Returns None if the key does not exist.
+    """
+    for i in range(0, len(path) - 1):
+        configobj = configobj.get(path[i], {})
+    return configobj.get(path[-1], None)
+
+
+def get_dot_value(configobj, key):
+    """
+    Same as get_value(), but key is in the dot-separated format; e.g.
+    section1.section2.key.
+    """
+    return get_value(configobj, key.split('.'))
+
+
+def set_value(configobj, path, value):
+    """Sets the value. Path is the same as for get_value."""
+    for i in range(0, len(path) - 1):
+        configobj = configobj.setdefault(path[i], {})
+    configobj[path[-1]] = value
+
+
+def set_dot_value(configobj, key, value):
+    """Same as set_value(), but key is a dot-separated format."""
+    set_value(configobj, key.split('.'), value)
