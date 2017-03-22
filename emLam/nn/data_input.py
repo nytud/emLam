@@ -27,6 +27,7 @@ class DataLoader(object):
         - vocab_file: for the token -> int mapping. Not required if the data
                       is already in int format.
         """
+        super(DataLoader, self).__init__()
         self.header = header
         self.batch_size = batch_size
         self.num_steps = num_steps
@@ -36,8 +37,6 @@ class DataLoader(object):
         self.data_type = data_type
         self.vocab = self.read_vocab(vocab_file) if vocab_file else None
         self.batch_div = self.__batch_per_batch()
-        # Subclass-specific to avoid copying all the arguments another N times
-        self._init()
 
     def __batch_per_batch(self):
         """How many data batches per requested batch size."""
@@ -63,14 +62,11 @@ class DataLoader(object):
     def __iter__(self):
         raise NotImplementedError('__iter__ must be implemented.')
 
-    def _init(self):
-        """The subclass must initialize epoch_size and the data setup here."""
-        raise NotImplementedError('_init must be implemented.')
-
 
 class TxtDiskLoader(DataLoader):
     """Reads the text-files-per-batch format."""
-    def _init(self):
+    def __init__(self, *args):
+        super(TxtDiskLoader, self).__init__(*args)
         if not self.vocab:
             raise ValueError('TxtDiskLoader requires a vocabulary file.')
         self.queues = self.__setup_queues(self.data_batches)
@@ -117,7 +113,8 @@ class TxtDiskLoader(DataLoader):
 
 class IntMemLoader(DataLoader):
     """Reads the int-array-in-memory format."""
-    def _init(self):
+    def __init__(self, *args):
+        super(IntMemLoader, self).__init__(*args)
         data = np.load(self.header + '.npz')['data']
         data = data[:self.batch_size * self.batch_div].reshape(
             self.batch_size, -1)
