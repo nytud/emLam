@@ -14,6 +14,19 @@ class DataLoader(object):
     def __init__(self, header, batch_size, num_steps,
                  data_len, data_batches, one_hot=False,
                  data_type=np.int32, vocab_file=None):
+        """
+        The parameters:
+        - header: the header file so that we find the data.
+        - batch_size: the batch_size requested by the script. Must be a
+                      divisor of data_batches.
+        - num_steps: the number of steps to unroll the data for.
+        - data_len: the number of tokens in the data. This comes from the
+                    header.
+        - data_batches: the number of batches in the data. Comes from the header.
+        - data_type: the int type to use.
+        - vocab_file: for the token -> int mapping. Not required if the data
+                      is already in int format.
+        """
         self.header = header
         self.batch_size = batch_size
         self.num_steps = num_steps
@@ -22,8 +35,24 @@ class DataLoader(object):
         self.one_hot = one_hot
         self.data_type = data_type
         self.vocab = self.read_vocab(vocab_file) if vocab_file else None
+        self.batch_div = self.__batch_per_batch()
         # Subclass-specific to avoid copying all the arguments another N times
         self._init()
+
+    def __batch_per_batch(self):
+        """How many data batches per requested batch size."""
+        div, mod = divmod(self.data_batches, self.batch_size)
+        if div == 0:
+            raise ValueError('Not enough batch files ({} instead of {})'.format(
+                self.data_batches, self.batch_size))
+        elif mod != 0:
+            logging.getLogger('emLam.nn').warning(
+                'The number of data files ({}) '.format(self.data_batches) +
+                'is not compatible with the batch size ' +
+                '({}). Only using the first '.format(self.batch_size) +
+                '{} files.'.format(self.batch_size * div)
+            )
+        return div
 
     @staticmethod
     def read_vocab(vocab_file):
@@ -36,7 +65,7 @@ class DataLoader(object):
 
     def _init(self):
         """The subclass must initialize epoch_size and the data setup here."""
-        raise NotImplementedError('__init must be implemented.')
+        raise NotImplementedError('_init must be implemented.')
 
 
 class TxtDiskLoader(DataLoader):
@@ -44,28 +73,17 @@ class TxtDiskLoader(DataLoader):
     def _init(self):
         if not self.vocab:
             raise ValueError('TxtDiskLoader requires a vocabulary file.')
-        self.queues = self._setup_queues(self.data_batches)
+        self.queues = self.__setup_queues(self.data_batches)
         self.epoch_size = (
             ((self.data_len // self.data_batches - 1) // self.num_steps) *
             len(self.queues[0])
         )  # -1 because targets are shifted right by 1 step
 
-    def _setup_queues(self, data_batches):
-        div, mod = divmod(data_batches, self.batch_size)
-        if div == 0:
-            raise ValueError('Not enough batch files ({} instead of {})'.format(
-                data_batches, self.batch_size))
-        elif mod != 0:
-            logging.getLogger('emLam').warning(
-                'The number of data files ({}) '.format(data_batches) +
-                'is not compatible with the batch size ' +
-                '({}). Only using the first '.format(self.batch_size) +
-                '{} files.'.format(self.batch_size * div)
-            )
-
-        ext_str = digits_format_str(data_batches)
+    def __setup_queues(self):
+        """Sets up the "queue" (list) of data files to be read by each batch."""
+        ext_str = digits_format_str(self.data_batches)
         queues = [[] for _ in range(self.batch_size)]
-        for i in range(div * self.batch_size):
+        for i in range(self.batch_div * self.batch_size):
             queues[i % self.batch_size].append(self.header + ext_str.format(i))
         return queues
 
@@ -74,11 +92,11 @@ class TxtDiskLoader(DataLoader):
             infs = [openall(self.queues[i][q_step]) for i in range(self.batch_size)]
             arr = np.zeros((self.batch_size, self.num_steps + 1),
                            dtype=self.data_type)
-            arr[:, -1:] = np.array(self._read_from_infs(infs, 1))
+            arr[:, -1:] = np.array(self.__read_from_infs(infs, 1))
             for i in range(self.epoch_size // len(self.queues[0])):
                 arr[:, 0] = arr[:, -1]
                 arr[:, 1:] = np.array(
-                    self._read_from_infs(infs, self.num_steps))
+                    self.__read_from_infs(infs, self.num_steps))
                 if self.one_hot:
                     ret = np.zeros((self.batch_size, self.num_steps, len(self.vocab)),
                                    dtype=self.data_type)
@@ -92,7 +110,7 @@ class TxtDiskLoader(DataLoader):
             for inf in infs:
                 inf.close()
 
-    def _read_from_infs(self, infs, num_tokens):
+    def __read_from_infs(self, infs, num_tokens):
         return [[self.vocab[inf.readline().strip()] for _ in range(num_tokens)]
                 for inf in infs]
 
@@ -100,25 +118,10 @@ class TxtDiskLoader(DataLoader):
 class IntMemLoader(DataLoader):
     """Reads the int-array-in-memory format."""
     def _init(self):
-        self.epoch_size = (self.data_len // self.batch_size - 1) // self.num_steps
-        cropped_len = self.data_len // self.batch_size * self.batch_size
-        self.data = np.load(self.header + '.npz')['data'][:cropped_len].reshape(
-            self.batch_size, -1)
-
-    def __iter__(self):
-        num_steps = self.num_steps
-        for i in range(self.epoch_size):
-            start = i * num_steps
-            end = start + num_steps
-            yield self.data[:, start:end], self.data[:, start + 1:end + 1]
-
-
-class BatchIntMemLoader(DataLoader):
-    """Reads the int-array-in-memory format."""
-    def _init(self):
         data = np.load(self.header + '.npz')['data']
-        self.batch_size = data.shape[0]
-        self.epoch_size = (data.shape[1] - 1) // self.num_steps
+        data = data[:self.batch_size * self.batch_div].reshape(
+            self.batch_size, -1)
+        self.epoch_size = (data.shape[1] - 1) // self.num_steps  # -1 for target
         self.data = data[:, :self.epoch_size * self.num_steps + 1]
 
     def __iter__(self):
@@ -137,16 +140,10 @@ def digits_format_str(number):
 def data_loader(header, batch_size, num_steps, one_hot=False,
                 data_type=np.int32, vocab_file=None):
     with openall(header) as inf:
-        fields = inf.readline().strip().split('\t')
-        if fields[0] == 'TXT_DISK':
+        format, _, data_batches, _, data_len = inf.readline().strip().split('\t')
+        if format == 'txt':
             cls = TxtDiskLoader
-            data_batches = int(fields[1])
-        elif fields[1] == 'INT_MEM':
+        elif format == 'int':
             cls = IntMemLoader
-            data_batches = 0
-        else:
-            cls = BatchIntMemLoader
-            data_batches = int(fields[1])
-        data_len = int(fields[-1])
-    return cls(header, batch_size, num_steps, data_len, data_batches, one_hot,
-               data_type, vocab_file)
+    return cls(header, batch_size, num_steps, int(data_len), int(data_batches),
+               one_hot, data_type, vocab_file)

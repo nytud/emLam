@@ -23,6 +23,7 @@ standard_library.install_aliases()
 
 class CorpusCompiler(object):
     def __init__(self, input_files, batch_size, *args):
+        """*args is there so that further base classes can be initialized."""
         super(CorpusCompiler, self).__init__(*args)
         self.input_files = input_files
         self.batch_size = batch_size
@@ -30,6 +31,7 @@ class CorpusCompiler(object):
         self.ctype = get_name_stem(self.__class__, 'CorpusCompiler')
 
     def compile_corpus(self):
+        """The function that does the work; to be implemented by subclasses."""
         raise NotImplementedError('compile_corpus must be implemented')
 
     def read_input(self):
@@ -52,8 +54,11 @@ class CorpusCompiler(object):
             self.batches[i].append(sentence)
             lens[i] += len(sentence)
 
-    def input_size(self):
+    def num_sentences(self):
         return sum(map(len, self.batches))
+
+    def aggregate_tokens(self, fun=sum):
+        return fun(map(lambda b: sum(map(len, b)), self.batches))
 
 
 class DefaultCorpusCompiler(CorpusCompiler):
@@ -107,6 +112,10 @@ class SortedCorpusCompiler(CorpusCompiler):
 
 
 class OutputWriter(object):
+    """
+    For writing the output into file(s). Note that this class does not work on
+    its own: it has to be mingled with CorpusCompiler.
+    """
     def __init__(self, output_prefix):
         super(OutputWriter, self).__init__()
         self.output_prefix = output_prefix
@@ -115,11 +124,12 @@ class OutputWriter(object):
     def write_output(self, *args):
         raise NotImplementedError('write_output must be implemented')
 
-    def write_header(self):
+    def write_header(self, num_tokens=None):
         with openall(self.output_prefix, 'wt') as header:
             print(
-                '{}\t{}\t{}\t{}'.format(self.otype, self.ctype,
-                                        self.batch_size, self.input_size()),
+                '{}\t{}\t{}\t{}\t{}'.format(
+                    self.otype, self.ctype, self.batch_size,
+                    self.num_sentences(), num_tokens or self.aggregate_tokens()),
                 file=header
             )
 
@@ -132,8 +142,8 @@ class IntOutputWriter(OutputWriter):
 
     def write_output(self, vocab_file):
         vocab = self.__read_vocab(vocab_file)
-        self.write_header()
-        min_length = min(map(len, self.batches))
+        min_length = self.aggregate_tokens(min)
+        self.write_header(min_length * self.batch_size)
         out_array = np.zeros((self.batch_size, min_length), dtype=np.int32)
         for i, batch in enumerate(self.batches):
             out_array[i] = np.fromiter(
