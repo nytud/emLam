@@ -272,16 +272,19 @@ def main():
 
     # TODO: look into Supervisor
     with tf.Session(graph=graph, config=get_sconfig(config.get('GPU'))) as sess:
+        # Initialize the model first, so that we can test the empty model
+        # right away if we want :)
+        last_epoch = init_or_load_session(sess, save_dir, saver, init)
+        # Load the embedding from file.
+        if last_epoch == 0:
+            sess.run(assign_em)
+            # Hope this frees up the embedding array...
+            del assign_em
+
         # The training itself
         if args.train:
             boards_dir = os.path.join('boards', network_params.model_name)
             writer = tf.summary.FileWriter(boards_dir, graph=graph)
-            last_epoch = init_or_load_session(sess, save_dir, saver, init)
-            # Load the embedding from file.
-            if last_epoch == 0:
-                sess.run(assign_em)
-                # Hope this frees up the embedding array...
-                del assign_em
 
             global_step = 0  # TODO not if we load the model...
             logger.info('Starting...')
@@ -309,13 +312,15 @@ def main():
 
                 # Check for overfitting
                 if stop_early(valid_ppls, train_params.early_stopping, save_dir):
+                    # Re-load the best model if we deleted the current because
+                    # of overfitting
+                    load_session(sess, save_dir, saver)
                     break
 
             writer.close()
 
         # Evaluation
         if args.test:
-            load_session(sess, save_dir, saver)
             logger.info('Running evaluation...')
             test_perplexity, _ = run_epoch(sess, mtest, test_data)
             logger.info('Test perplexity: {:.3f}'.format(test_perplexity))
