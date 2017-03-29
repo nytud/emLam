@@ -71,8 +71,12 @@ def parse_arguments():
                         help='the configuration file.')
     parser.add_argument('--model-name', '-m',
                         help='the name of the model [RNN CLM].')
-    parser.add_argument('--reset', '-r', action='store_true',
-                        help='Restart the training even if the model exists [no].')
+    parser.add_argument('--reset', '-r', action='store_const', const=1,
+                        default=0, help='Reset the model before training even '
+                                        'if it exists [no].')
+    parser.add_argument('--RESET', '-R', dest='reset', action='store_const',
+                        const=2, help='Same as --reset, but also works for '
+                                      'testing. Use with caution.')
     parser.add_argument('--log-level', '-l', type=str, default=None,
                         choices=['debug', 'info', 'warning', 'error', 'critical'],
                         help='the logging level.')
@@ -89,7 +93,7 @@ def parse_arguments():
 
     if not args.train and not args.test:
         parser.error('At least one of the train or test sets must be specified.')
-    if not args.train and args.reset:
+    if not args.train and args.reset == 1:
         parser.error('The reset option only works for training.')
 
     return args, config
@@ -272,16 +276,19 @@ def main():
 
     # TODO: look into Supervisor
     with tf.Session(graph=graph, config=get_sconfig(config.get('GPU'))) as sess:
+        # Initialize the model first, so that we can test the empty model
+        # right away if we want :)
+        last_epoch = init_or_load_session(sess, save_dir, saver, init)
+        # Load the embedding from file.
+        if last_epoch == 0:
+            sess.run(assign_em)
+            # Hope this frees up the embedding array...
+            del assign_em
+
         # The training itself
         if args.train:
             boards_dir = os.path.join('boards', network_params.model_name)
             writer = tf.summary.FileWriter(boards_dir, graph=graph)
-            last_epoch = init_or_load_session(sess, save_dir, saver, init)
-            # Load the embedding from file.
-            if last_epoch == 0:
-                sess.run(assign_em)
-                # Hope this frees up the embedding array...
-                del assign_em
 
             global_step = 0  # TODO not if we load the model...
             logger.info('Starting...')
@@ -309,13 +316,15 @@ def main():
 
                 # Check for overfitting
                 if stop_early(valid_ppls, train_params.early_stopping, save_dir):
+                    # Re-load the best model if we deleted the current because
+                    # of overfitting
+                    load_session(sess, save_dir, saver)
                     break
 
             writer.close()
 
         # Evaluation
         if args.test:
-            load_session(sess, save_dir, saver)
             logger.info('Running evaluation...')
             test_perplexity, _ = run_epoch(sess, mtest, test_data)
             logger.info('Test perplexity: {:.3f}'.format(test_perplexity))
