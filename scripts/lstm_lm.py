@@ -72,12 +72,11 @@ def parse_arguments():
     parser.add_argument('--model-name', '-m',
                         help='the name of the model [RNN CLM].')
     parser.add_argument('--reset', '-r', action='store_const', const=1,
-                        help='Reset the model before training even if it '
-                             'exists [no].')
+                        default=0, help='Reset the model before training even '
+                                        'if it exists [no].')
     parser.add_argument('--RESET', '-R', dest='reset', action='store_const',
-                        const=2,
-                        help='Same as --reset, but also works for testing. '
-                             'Use with caution.')
+                        const=2, help='Same as --reset, but also works for '
+                                      'testing. Use with caution.')
     parser.add_argument('--log-level', '-l', type=str, default=None,
                         choices=['debug', 'info', 'warning', 'error', 'critical'],
                         help='the logging level.')
