@@ -71,8 +71,13 @@ def parse_arguments():
                         help='the configuration file.')
     parser.add_argument('--model-name', '-m',
                         help='the name of the model [RNN CLM].')
-    parser.add_argument('--reset', '-r', action='store_true',
-                        help='Restart the training even if the model exists [no].')
+    parser.add_argument('--reset', '-r', action='store_const', const=1,
+                        help='Reset the model before training even if it '
+                             'exists [no].')
+    parser.add_argument('--RESET', '-R', dest='reset', action='store_const',
+                        const=2,
+                        help='Same as --reset, but also works for testing. '
+                             'Use with caution.')
     parser.add_argument('--log-level', '-l', type=str, default=None,
                         choices=['debug', 'info', 'warning', 'error', 'critical'],
                         help='the logging level.')
@@ -89,7 +94,7 @@ def parse_arguments():
 
     if not args.train and not args.test:
         parser.error('At least one of the train or test sets must be specified.')
-    if not args.train and args.reset:
+    if not args.train and args.reset == 1:
         parser.error('The reset option only works for training.')
 
     return args, config
