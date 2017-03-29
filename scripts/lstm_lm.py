@@ -35,6 +35,7 @@ def get_sconfig(gpu_params):
     Returns a session configuration object with the specified GPU parameters.
     """
     params = {}
+    gpu_params = {k: v for k, v in (gpu_params or {}).items() if v is not None}
     # params = {'log_device_placement': True}
     if gpu_params:
         params['gpu_options'] = tf.GPUOptions(**gpu_params)

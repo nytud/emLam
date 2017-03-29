@@ -59,4 +59,4 @@ softmax = option('Softmax', 'NceLoss', 'SampledSoftmax', default=Softmax)
 
 [GPU]
 # All entries in this section (e.g. `per_process_gpu_memory_fraction`) are added to the TF `Session`'s `gpu_options`.
-per_process_gpu_memory_fraction = float(min=0, max=1, default=1)
+per_process_gpu_memory_fraction = float(min=0, max=1, default=None)
