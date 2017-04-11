@@ -75,6 +75,23 @@ def new_file_name(file_name, values_str):
     return base_name + '-' + values_str + dot + ext
 
 
+def delete_nones(section):
+    """
+    Deletes all None members from a section. This should be called as-is,
+    not via walk(), because the latter does not allow deletion in its contract.
+    """
+    to_remove = set()
+    for k, v in section.items():
+        if v is None:
+            to_remove.add(k)
+        elif isinstance(v, dict):
+            delete_nones(v)
+            if len(v) == 0:
+                to_remove.add(k)
+    for k in to_remove:
+        del section[k]
+
+
 def main():
     args = parse_arguments()
     config, warnings, errors = load_config(args.configuration, args.schema)
@@ -93,6 +110,7 @@ def main():
             set_dot_value(new_config, skey, svalue.replace('%', values_str))
         new_config.filename = os.path.join(
             args.output_dir, new_file_name(args.configuration, values_str))
+        delete_nones(new_config)
         new_config.write()
 
 
