@@ -4,7 +4,6 @@
 """Prepares data for training."""
 
 from __future__ import absolute_import, division, print_function
-from future import standard_library
 from argparse import ArgumentParser
 import inspect
 from itertools import chain
