@@ -18,8 +18,6 @@ import numpy as np
 from emLam.nn.data_input import digits_format_str
 from emLam.utils import openall
 
-standard_library.install_aliases()
-
 
 class CorpusCompiler(object):
     def __init__(self, input_files, batch_size, *args):
