@@ -4,7 +4,6 @@
 """Prepares data for training."""
 
 from __future__ import absolute_import, division, print_function
-from future import standard_library
 from argparse import ArgumentParser
 import inspect
 from itertools import chain
@@ -17,8 +16,6 @@ import numpy as np
 
 from emLam.nn.data_input import digits_format_str
 from emLam.utils import openall
-
-standard_library.install_aliases()
 
 
 class CorpusCompiler(object):

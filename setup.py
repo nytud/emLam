@@ -12,7 +12,7 @@ def readme():
         return f.read()
 
 setup(name='emlam',
-      version='0.7',
+      version='1.0',
       description='Scripts and tools for Hungarian Language Modeling',
       long_description=readme(),
       url='https://github.com/DavidNemeskey/emLam',
@@ -51,13 +51,10 @@ setup(name='emlam',
       packages=find_packages(exclude=['scripts']),
       # Include the configuration -- unfortunately, MANIFEST.in doesn't seem
       # to do it for bdist (and package_data for sdist)
-      # WARNING For now, emLam doesn't work with bdist, because the scripts
-      # below are not installed anyway.
       package_data={
           'conf': ['*'],
       },
       # Install the scripts
-      # TODO Change this to entry_points/console_scripts (see WARNING above)
       scripts=[
           'scripts/extract_embedding.py',
           'scripts/lstm_lm.py',
@@ -80,6 +77,5 @@ setup(name='emlam',
           # Better configuration files.
           'configobj'
       ],
-      # TODO Could use entry_points for corpora / preprocessors and console_scripts
       # zip_safe=False,
       use_2to3=False)
