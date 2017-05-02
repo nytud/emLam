@@ -17,6 +17,13 @@ def get_all_preprocessors():
     return get_all_classes(Preprocessor)
 
 
+def test_it():
+    import pkgutil
+    module = importlib.import_module(__name__)
+    for importer, modname, ispkg in pkgutil.iter_modules(module.__path__):
+        print("Found submodule %s (is a package: %s)" % (modname, ispkg))
+
+
 def get_all_classes(ancestor):
     """
     Returns all classes of a specific type defined in the corpus package. In
