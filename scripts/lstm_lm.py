@@ -77,6 +77,8 @@ def parse_arguments():
     parser.add_argument('--RESET', '-R', dest='reset', action='store_const',
                         const=2, help='Same as --reset, but also works for '
                                       'testing. Use with caution.')
+    parser.add_argument('--seed', '-s', type=float, default=42,
+                        help='the random seed for TensorFlow operations [42].')
     parser.add_argument('--log-level', '-l', type=str, default=None,
                         choices=['debug', 'info', 'warning', 'error', 'critical'],
                         help='the logging level.')
@@ -238,6 +240,7 @@ def main():
 
     # Create the models and the global ops
     with tf.Graph().as_default() as graph:
+        tf.set_random_seed(args.seed)
         # init_scale = 1 / math.sqrt(args.num_nodes)
         initializer = tf.random_uniform_initializer(
             -network_params.init_scale, network_params.init_scale)
