@@ -12,7 +12,7 @@ def readme():
         return f.read()
 
 setup(name='emlam',
-      version='1.0.1',
+      version='1.0.2',
       description='Scripts and tools for Hungarian Language Modeling',
       long_description=readme(),
       url='https://github.com/DavidNemeskey/emLam',
@@ -23,7 +23,7 @@ setup(name='emlam',
           #   3 - Alpha
           #   4 - Beta
           #   5 - Production/Stable
-          'Development Status :: 3 - Alpha',
+          'Development Status :: 5 - Production/Stable',
 
           # Indicate who your project is intended for
           'Intended Audience :: Science/Research',
@@ -69,7 +69,7 @@ setup(name='emlam',
       install_requires=[
           # Python 2/3 compatibility
           'future', 'six',
-          # Communication with GATE; an earlier lxml version is broken, but
+          # Communication with GATE
           'requests',
           # An earlier version was broken (don't remember which); also,
           # iterparse is broken in 3.7.3. :)
