@@ -239,7 +239,7 @@ class GateOutputParser(object):
                 all_anas = []
             if get_anas == 'matching':
                 lemma = tup[self.token_feats['lemma']]
-                pos = tup[self.token_feats['pos']]
+                pos = tup[self.token_feats['hfstana']]
                 all_anas = [a for a in all_anas if
                             a['lemma'] == lemma and a['feats'] == pos]
             tup[self.token_feats['anas']] = json.dumps(all_anas)
