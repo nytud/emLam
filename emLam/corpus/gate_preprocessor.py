@@ -52,6 +52,11 @@ class GATEPreprocessor(Preprocessor):
         self.gate = None
 
     def preprocess(self, input_stream, output_stream):
+        if (
+            self.restart_file and self.files_read and
+            self.files_read % self.restart_file == 0
+        ):
+            self.gate.restart_server()
         for chunk, parsed in enumerate(self.__parse_with_gate(input_stream)):
             if chunk > 0:
                 # Preserve the empty sentence separator line between chunks
@@ -60,11 +65,6 @@ class GATEPreprocessor(Preprocessor):
                                for sent in parsed),
                   file=output_stream)
         self.files_read += 1
-        if (
-            self.restart_file and self.files_read and
-            self.files_read % self.restart_file == 0
-        ):
-            self.gate.restart_server()
 
     def __parse_with_gate(self, input_stream):
         """
