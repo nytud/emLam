@@ -51,13 +51,13 @@ class Gate(object):
         self.modules = modules
         self.token_feats = {f: i for i, f in enumerate(token_feats.split(','))}
         self.get_anas = get_anas
+        self.restart_every = restart_every
+        self.server = None
+        self.parsed = 0
         if (self.get_anas == 'no') != ('anas' in self.token_feats):
             raise ValueError(
                 'Invalid setup: anas should be "no" if and only if it is not '
                 'in token_feats')
-        self.restart_every = restart_every
-        self.server = None
-        self.parsed = 0
         self.parser = GateOutputParser.get_parser(self.token_feats, gate_version)
         self.__start_server()
 
