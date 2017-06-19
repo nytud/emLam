@@ -53,7 +53,7 @@ class Gate(object):
         self.token_feats = {f: i for i, f in enumerate(token_feats.split(','))}
         self.server = None
         self.parsed = 0
-        self.parser = GateOutputParser.get_parser(gate_version)
+        self.parser = GateOutputParser.get_parser(self.token_feats, gate_version)
         self.__start_server()
 
     def __del__(self):
@@ -150,16 +150,17 @@ class Gate(object):
 
 class GateOutputParser(object):
     """Class for parsing the GATE output XML."""
-    def __init__(self):
+    def __init__(self, token_feats):
+        self.token_feats = token_feats
         self.logger = logging.getLogger('emLam.GATE')
         self.logger.debug('GATE parser class: {}'.format(self.__class__.__name__))
 
     @staticmethod
-    def get_parser(gate_version=8.4):
+    def get_parser(token_feats, gate_version=8.4):
         if gate_version <= 8.2:
-            return GateOutputParser82()
+            return GateOutputParser82(token_feats)
         else:
-            return GateOutputParser84()
+            return GateOutputParser84(token_feats)
 
     def parse_gate_xml_file(self, xml_file, get_anas='no'):
         """
