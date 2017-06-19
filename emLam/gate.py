@@ -33,9 +33,7 @@ class GateError(Exception):
 
 class Gate(object):
     """hunlp-GATE interface object."""
-    def __init__(self, gate_props, restart_every=0,
-                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode',
-                 gate_version=8.4):
+    def __init__(self, gate_props, modules, restart_every=0, gate_version=8.4):
         """
         gate_props is the name of the GATE properties file. It is suppoesed to
         be in the hunlp-GATE directory.

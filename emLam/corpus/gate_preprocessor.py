@@ -12,10 +12,12 @@ class GATEPreprocessor(Preprocessor):
     NAME = 'GATE'
     DESCRIPTION = 'GATE preprocessor'
 
-    def __init__(self, gate_props, max_length=10000, restart_every='no',
+    def __init__(self, gate_props, modules='QT,HFSTLemm,ML3-PosLem-hfstcode',
+                 max_length=10000, restart_every='no',
                  restart_at=0, anas='no', gate_version=8.4):
         super(GATEPreprocessor, self).__init__()
         self.gate_props = gate_props
+        self.modules = modules
         self.max_length = max_length
         self.anas = anas
         self.gate = None
@@ -41,7 +43,7 @@ class GATEPreprocessor(Preprocessor):
         processing process, not in the main one.
         """
         if not self.gate:
-            self.gate = Gate(self.gate_props, self.restart_line,
+            self.gate = Gate(self.gate_props, self.modules, self.restart_line,
                              gate_version=self.gate_version)
 
     def cleanup(self):
