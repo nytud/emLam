@@ -54,7 +54,7 @@ class Gate(object):
         self.restart_every = restart_every
         self.server = None
         self.parsed = 0
-        if (self.get_anas == 'no') != ('anas' in self.token_feats):
+        if (self.get_anas == 'no') == ('anas' in self.token_feats):
             raise ValueError(
                 'Invalid setup: anas should be "no" if and only if it is not '
                 'in token_feats')
@@ -182,7 +182,7 @@ class GateOutputParser(object):
             if event == 'start':
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
-                        tup = [None for _ in range(len(self.token_feats))]
+                        tup = ['' for _ in range(len(self.token_feats))]
             else:  # end
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
