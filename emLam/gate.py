@@ -33,7 +33,8 @@ class GateError(Exception):
 
 class Gate(object):
     """hunlp-GATE interface object."""
-    def __init__(self, gate_props, modules, restart_every=0, gate_version=8.4):
+    def __init__(self, gate_props, modules, token_feats,
+                 restart_every=0, gate_version=8.4):
         """
         gate_props is the name of the GATE properties file. It is suppoesed to
         be in the hunlp-GATE directory.
@@ -49,6 +50,7 @@ class Gate(object):
         self.gate_url = self.__gate_url()
         self.restart_every = restart_every
         self.modules = modules
+        self.token_feats = {f: i for i, f in enumerate(token_feats.split(','))}
         self.server = None
         self.parsed = 0
         self.parser = GateOutputParser.get_parser(gate_version)
@@ -167,14 +169,13 @@ class GateOutputParser(object):
         solution, but what can one do?
         """
         text, sent = [], []
-        token_feats = {'string': 0, 'lemma': 1, 'hfstana': 2, 'anas': 3}
         curr_token_feat = None
         tup = None
         for event, node in etree.iterparse(xml_file, huge_tree=True, encoding='utf-8', events=['start', 'end']):
             if event == 'start':
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
-                        tup = [None, None, None, None]
+                        tup = [None for _ in range(len(self.token_feats))]
             else:  # end
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
@@ -186,10 +187,10 @@ class GateOutputParser(object):
                     elif node.get('Type') == 'Sentence':
                         text.append(sent)
                         sent = []
-                elif node.tag == 'Name' and tup and node.text in token_feats:
+                elif node.tag == 'Name' and tup and node.text in self.token_feats:
                     curr_token_feat = node.text
                 elif node.tag == 'Value' and curr_token_feat:
-                    tup[token_feats[curr_token_feat]] = node.text
+                    tup[self.token_feats[curr_token_feat]] = node.text
                     curr_token_feat = None
         return text
 
@@ -224,30 +225,38 @@ class GateOutputParser(object):
     def extract_anas(self, tup, get_anas):
         """Extracts the anas and writes them back to tup as a json list."""
         if get_anas != 'no':
-            word, lemma, pos, anas = tup
+            anas = tup[self.token_feats['anas']]
             if anas:
-                all_anas = self.parse_anas(anas, tup)
+                word = tup[self.token_feats['string']]
+                try:
+                    all_anas = self.parse_anas(anas, word)
+                except:
+                    self.logger.exception(
+                        u'Could not parse anas "{}"; {}'.format(anas, tup))
+                    raise
             else:
                 all_anas = []
             if get_anas == 'matching':
+                lemma = tup[self.token_feats['lemma']]
+                pos = tup[self.token_feats['pos']]
                 all_anas = [a for a in all_anas if
                             a['lemma'] == lemma and a['feats'] == pos]
-            tup[-1] = json.dumps(all_anas)
+            tup[self.token_feats['anas']] = json.dumps(all_anas)
         else:
-            tup = tup[:-1]
+            del tup[self.token_feats['anas']]
         return tup
 
-    def parse_anas(self, anas, tup):
+    def parse_anas(self, anas, word):
         """
-        Extracts the anas. tup is only passed to the function for better error
-        reporting.
+        Extracts the anas. word is passed to the function to handle "incorrect"
+        parses.
         """
         raise NotImplementedError('parse_anas() must be implemented.')
 
 
 class GateOutputParser82(GateOutputParser):
     """Gate output parser for GATE version 8.2 (and below?)."""
-    def parse_anas(self, anas, tup):
+    def parse_anas(self, anas, word):
         """Extracts the anas from the output of GATE 8.2 or below."""
         ret = []
         if anas:
@@ -257,18 +266,17 @@ class GateOutputParser82(GateOutputParser):
                     feats = {'ana': a_ana, 'feats': a_pos, 'lemma': a_lemma}
                     if a_incorrect:
                         feats['incorrect'] = True
-                        feats['lemma'] = tup[WORD]
+                        feats['lemma'] = word
                     ret.append(feats)
                 except:
-                    self.logger.exception(
-                        u'Strange ana "{}" in "{}"; {}'.format(ana, anas, tup))
+                    self.logger.exception(u'Strange ana "{}"'.format(ana))
                     raise
         return ret
 
 
 class GateOutputParser84(GateOutputParser):
     """Gate output parser for GATE version 8.4 (and above?)."""
-    def parse_anas(self, anas, tup):
+    def parse_anas(self, anas, word):
         """Extracts the anas from the output of GATE 8.4 or above."""
         ret = []
         for all_ana in etree.fromstring(anas):
@@ -279,6 +287,6 @@ class GateOutputParser84(GateOutputParser):
                     value = entry.xpath('./string')[1].text
                     feats[feat] = value
                 if feats.get('incorrect'):
-                    feats['lemma'] = tup[WORD]
+                    feats['lemma'] = word
                 ret.append(feats)
         return ret
