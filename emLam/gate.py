@@ -105,8 +105,8 @@ class Gate(object):
         try:
             reply = self.__send_request(url)
             if reply:
-                with open('/dev/shm/xml-{}'.format(os.getpid()), 'wt') as outf:
-                    print(reply, file=outf)
+                with open('/dev/shm/xml-{}'.format(os.getpid()), 'wb') as outf:
+                    outf.write(reply)
                 parsed = self.parser.parse_gate_xml(reply, anas)
                 if self.restart_every:
                     self.parsed += len(parsed)
