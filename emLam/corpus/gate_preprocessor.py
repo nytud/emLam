@@ -47,7 +47,8 @@ class GATEPreprocessor(Preprocessor):
         """
         if not self.gate:
             self.gate = Gate(self.gate_props, self.modules, self.token_feats,
-                             self.restart_line, gate_version=self.gate_version)
+                             self.anas, self.restart_line,
+                             gate_version=self.gate_version)
 
     def cleanup(self):
         if self.gate:
@@ -79,10 +80,10 @@ class GATEPreprocessor(Preprocessor):
         for txt in input_stream:
             text += txt
             if len(text) > self.max_length:
-                yield self.gate.parse(text, self.anas)
+                yield self.gate.parse(text)
                 text = ''
         if text:
-            yield self.gate.parse(text, self.anas)
+            yield self.gate.parse(text)
 
     @classmethod
     def instantiate(cls, process_id=1, **kwargs):

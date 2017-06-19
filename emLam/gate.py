@@ -33,7 +33,7 @@ class GateError(Exception):
 
 class Gate(object):
     """hunlp-GATE interface object."""
-    def __init__(self, gate_props, modules, token_feats,
+    def __init__(self, gate_props, modules, token_feats, get_anas='no',
                  restart_every=0, gate_version=8.4):
         """
         gate_props is the name of the GATE properties file. It is suppoesed to
@@ -48,9 +48,14 @@ class Gate(object):
         self.gate_props = gate_props
         self.gate_dir = os.path.dirname(gate_props)
         self.gate_url = self.__gate_url()
-        self.restart_every = restart_every
         self.modules = modules
         self.token_feats = {f: i for i, f in enumerate(token_feats.split(','))}
+        self.get_anas = get_anas
+        if (self.get_anas == 'no') != ('anas' in self.token_feats):
+            raise ValueError(
+                'Invalid setup: anas should be "no" if and only if it is not '
+                'in token_feats')
+        self.restart_every = restart_every
         self.server = None
         self.parsed = 0
         self.parser = GateOutputParser.get_parser(self.token_feats, gate_version)
@@ -94,7 +99,7 @@ class Gate(object):
         self.__stop_server()
         self.__start_server()
 
-    def parse(self, text, anas='no'):
+    def parse(self, text):
         """Parses a text with a running GATE server."""
         if not self.server:
             self.__start_server()
@@ -109,7 +114,7 @@ class Gate(object):
             if reply:
                 with open('/dev/shm/xml-{}'.format(os.getpid()), 'wb') as outf:
                     outf.write(reply)
-                parsed = self.parser.parse_gate_xml(reply, anas)
+                parsed = self.parser.parse_gate_xml(reply, self.get_anas)
                 if self.restart_every:
                     self.parsed += len(parsed)
                     if self.parsed >= self.restart_every:
@@ -162,13 +167,14 @@ class GateOutputParser(object):
         else:
             return GateOutputParser84(token_feats)
 
-    def parse_gate_xml_file(self, xml_file, get_anas='no'):
+    def parse_gate_xml_file(self, xml_file, get_anas):
         """
         Parses a GATE response from a file. We use a SAX(-like?) parser, because
         only iterparse() provide the huge_tree argument, and it is needed sometimes
         if the analysis for a word is too long. Much uglier than the dom-based
         solution, but what can one do?
         """
+
         text, sent = [], []
         curr_token_feat = None
         tup = None
@@ -243,8 +249,6 @@ class GateOutputParser(object):
                 all_anas = [a for a in all_anas if
                             a['lemma'] == lemma and a['feats'] == pos]
             tup[self.token_feats['anas']] = json.dumps(all_anas)
-        else:
-            del tup[self.token_feats['anas']]
         return tup
 
     def parse_anas(self, anas, word):
