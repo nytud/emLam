@@ -7,6 +7,7 @@ try:
     from configparser import RawConfigParser
 except:
     from ConfigParser import RawConfigParser
+from collections import defaultdict
 from future.moves.urllib.parse import urlencode
 from io import open, BytesIO, StringIO
 import json
@@ -15,12 +16,9 @@ import os
 import re
 from subprocess import Popen
 import time
-import warnings
 
 from lxml import etree
 import requests
-
-from emLam import WORD, LEMMA
 
 
 _anas_p = re.compile(r'ana=([^}]+), feats=([^}]+])(?:, incorrect=([^,}]+))?, '
@@ -33,9 +31,9 @@ class GateError(Exception):
 
 class Gate(object):
     """hunlp-GATE interface object."""
-    def __init__(self, gate_props, restart_every=0,
-                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode',
-                 gate_version=8.4):
+
+    def __init__(self, gate_props, modules, token_feats, get_anas='no',
+                 restart_every=0, gate_version=8.4):
         """
         gate_props is the name of the GATE properties file. It is suppoesed to
         be in the hunlp-GATE directory.
@@ -49,11 +47,16 @@ class Gate(object):
         self.gate_props = gate_props
         self.gate_dir = os.path.dirname(gate_props)
         self.gate_url = self.__gate_url()
-        self.restart_every = restart_every
         self.modules = modules
+        self.get_anas = get_anas
+        self.restart_every = restart_every
         self.server = None
         self.parsed = 0
-        self.parser = GateOutputParser.get_parser(gate_version)
+        if (self.get_anas == 'no') == ('anas' in token_feats):
+            raise ValueError(
+                'Invalid setup: anas should be "no" if and only if it is not '
+                'in token_feats')
+        self.parser = GateOutputParser.get_parser(token_feats, gate_version)
         self.__start_server()
 
     def __del__(self):
@@ -94,7 +97,7 @@ class Gate(object):
         self.__stop_server()
         self.__start_server()
 
-    def parse(self, text, anas='no'):
+    def parse(self, text):
         """Parses a text with a running GATE server."""
         if not self.server:
             self.__start_server()
@@ -108,8 +111,8 @@ class Gate(object):
             reply = self.__send_request(url)
             if reply:
                 with open('/dev/shm/xml-{}'.format(os.getpid()), 'wb') as outf:
-                    print(reply, file=outf)
-                parsed = self.parser.parse_gate_xml(reply, anas)
+                    outf.write(reply)
+                parsed = self.parser.parse_gate_xml(reply, self.get_anas)
                 if self.restart_every:
                     self.parsed += len(parsed)
                     if self.parsed >= self.restart_every:
@@ -148,20 +151,61 @@ class Gate(object):
                 u'Number of tries exceeded with server {}'.format(self.gate_props))
 
 
+class Feature(object):
+    def __init__(self, default=None):
+        self.default = default
+        self.value = None
+
+    def set(self, orig_value):
+        """Might modify the original value."""
+        self.value = orig_value
+
+    def get(self):
+        return self.value if self.value is not None else self.default
+
+    def __repr__(self):
+        return '{}({} / {})'.format(
+            self.__class__.__name__, self.value, self.default)
+
+
+class DepTargetFeature(Feature):
+    """Adds 1 to the depTarget, because the ML in GATE starts at 0..."""
+    def set(self, orig_value):
+        self.value = str(int(orig_value) + 1)
+
+
+class DefaultFeature(Feature):
+    """Always returns the default."""
+    def __init__(self, default=None):
+        super(DefaultFeature, self).__init__(default)
+        self.value = self.default
+
+
 class GateOutputParser(object):
     """Class for parsing the GATE output XML."""
-    def __init__(self):
+
+    # Defaults for the token features (needed because stupid GATE does not
+    # add the ROOT/0 dependency to the verb)
+    DEFAULTS = {'depTarget': lambda: Feature('-1'),
+                'depType': lambda: Feature('ROOT'),
+                '_': lambda: DefaultFeature('_')}
+
+    def __init__(self, token_feats):
+        self.token_feats_list = token_feats.split(',')
+        self.token_feats = {f: i for i, f in enumerate(self.token_feats_list)}
         self.logger = logging.getLogger('emLam.GATE')
         self.logger.debug('GATE parser class: {}'.format(self.__class__.__name__))
+        # Whether we need to fix the ids (GATE global ids to per sentence ids)
+        self.fix_ids = set(['id', 'depTarget']) & set(self.token_feats_list)
 
     @staticmethod
-    def get_parser(gate_version=8.4):
+    def get_parser(token_feats, gate_version=8.4):
         if gate_version <= 8.2:
-            return GateOutputParser82()
+            return GateOutputParser82(token_feats)
         else:
-            return GateOutputParser84()
+            return GateOutputParser84(token_feats)
 
-    def parse_gate_xml_file(self, xml_file, get_anas='no'):
+    def parse_gate_xml_file(self, xml_file, get_anas):
         """
         Parses a GATE response from a file. We use a SAX(-like?) parser, because
         only iterparse() provide the huge_tree argument, and it is needed sometimes
@@ -169,87 +213,91 @@ class GateOutputParser(object):
         solution, but what can one do?
         """
         text, sent = [], []
-        token_feats = {'string': 0, 'lemma': 1, 'hfstana': 2, 'anas': 3}
         curr_token_feat = None
-        tup = None
-        for event, node in etree.iterparse(xml_file, huge_tree=True, encoding='utf-8', events=['start', 'end']):
+        data = None
+        for event, node in etree.iterparse(
+            xml_file, huge_tree=True, encoding='utf-8', events=['start', 'end']
+        ):
             if event == 'start':
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
-                        tup = [None, None, None, None]
+                        data = defaultdict(lambda: Feature())
+                        data.update({tf: self.DEFAULTS[tf]()
+                                     for tf in self.token_feats_list
+                                     if tf in self.DEFAULTS})
             else:  # end
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
+                        lemma = data['lemma'].value
                         # The lemma might be None
-                        if tup[LEMMA] is None or '<incorrect_word>' in tup[LEMMA]:
-                            tup[LEMMA] = tup[WORD]
-                        sent.append(self.extract_anas(tup, get_anas))
-                        tup = None
+                        if lemma is None or '<incorrect_word>' in lemma:
+                            data['lemma'] = data.get('string', lemma)
+                        data['id'].set(node.get('Id'))
+                        sent.append(data)
+                        data = None
                     elif node.get('Type') == 'Sentence':
+                        self.fix_id_and_dep(sent)
+                        sent = [[token[tf].get() for tf in self.token_feats_list]
+                                for token in sent]
                         text.append(sent)
                         sent = []
-                elif node.tag == 'Name' and tup and node.text in token_feats:
+                elif node.tag == 'Name' and data is not None:
                     curr_token_feat = node.text
                 elif node.tag == 'Value' and curr_token_feat:
-                    tup[token_feats[curr_token_feat]] = node.text
+                    data[curr_token_feat].set(node.text)
                     curr_token_feat = None
         return text
 
-    def parse_gate_xml_file_dom(self, xml_file, get_anas='no'):
+    def fix_id_and_dep(self, sentence):
         """
-        Parses a GATE response from a file. Deprecated in favor of
-        parse_gate_xml_file().
+        Fixes the IDs of the words in the sentence so that it starts from 1 and
+        the ROOT is 0. Only run if either id or dep* is a requested feature.
         """
-        warnings.warn('parse_gate_xml_file_dom() is deprecated, as it '
-                      'cannot handle arbirarily large large inputs. Use '
-                      'parse_gate_xml_file() instead.', DeprecationWarning)
-        dom = etree.parse(xml_file)
-        root = dom.getroot()
-        text, sent = [], []
-        for a in root.xpath('./AnnotationSet/Annotation[@Type!="SpaceToken"]'):
-            if a.attrib['Type'] == 'Token':
-                word = a.find('Feature[Name="string"]').find('Value').text
-                lemma = a.find('Feature[Name="lemma"]').find('Value').text
-                pos = a.find('Feature[Name="hfstana"]').find('Value').text
-                anas = a.find('Feature[Name="anas"]').find('Value').text or ''
-                tup = [word, lemma if lemma else word, pos, anas]
-                sent.append(self.extract_anas(tup, get_anas))
-            else:
-                text.append(sent)
-                sent = []
-        return text
+        if self.fix_ids:
+            mapping = {'-1': '0'}
+            for i, data in enumerate(sentence, 1):
+                mapping[data['id'].get()] = str(i)
+            for data in sentence:
+                data['id'].set(mapping[data['id'].get()])
+                data['depTarget'].set(mapping[data['depTarget'].get()])
 
     def parse_gate_xml(self, xml, anas='no'):
         """Parses a GATE response from memory."""
         return self.parse_gate_xml_file(BytesIO(xml), anas)
 
-    def extract_anas(self, tup, get_anas):
-        """Extracts the anas and writes them back to tup as a json list."""
+    def extract_anas(self, data, get_anas):
+        """Extracts the anas and writes them back to data as a json list."""
         if get_anas != 'no':
-            word, lemma, pos, anas = tup
+            anas = data['anas'].value
             if anas:
-                all_anas = self.parse_anas(anas, tup)
+                word = data['string']
+                try:
+                    all_anas = self.parse_anas(anas, word)
+                except:
+                    self.logger.exception(
+                        u'Could not parse anas "{}"; {}'.format(anas, data))
+                    raise
             else:
                 all_anas = []
             if get_anas == 'matching':
+                lemma = data['lemma'].value
+                pos = data['hfstana'].value
                 all_anas = [a for a in all_anas if
                             a['lemma'] == lemma and a['feats'] == pos]
-            tup[-1] = json.dumps(all_anas)
-        else:
-            tup = tup[:-1]
-        return tup
+            data['anas'] = json.dumps(all_anas)
+        return data
 
-    def parse_anas(self, anas, tup):
+    def parse_anas(self, anas, word):
         """
-        Extracts the anas. tup is only passed to the function for better error
-        reporting.
+        Extracts the anas. word is passed to the function to handle "incorrect"
+        parses.
         """
         raise NotImplementedError('parse_anas() must be implemented.')
 
 
 class GateOutputParser82(GateOutputParser):
     """Gate output parser for GATE version 8.2 (and below?)."""
-    def parse_anas(self, anas, tup):
+    def parse_anas(self, anas, word):
         """Extracts the anas from the output of GATE 8.2 or below."""
         ret = []
         if anas:
@@ -259,18 +307,17 @@ class GateOutputParser82(GateOutputParser):
                     feats = {'ana': a_ana, 'feats': a_pos, 'lemma': a_lemma}
                     if a_incorrect:
                         feats['incorrect'] = True
-                        feats['lemma'] = tup[WORD]
+                        feats['lemma'] = word
                     ret.append(feats)
                 except:
-                    self.logger.exception(
-                        u'Strange ana "{}" in "{}"; {}'.format(ana, anas, tup))
+                    self.logger.exception(u'Strange ana "{}"'.format(ana))
                     raise
         return ret
 
 
 class GateOutputParser84(GateOutputParser):
     """Gate output parser for GATE version 8.4 (and above?)."""
-    def parse_anas(self, anas, tup):
+    def parse_anas(self, anas, word):
         """Extracts the anas from the output of GATE 8.4 or above."""
         ret = []
         for all_ana in etree.fromstring(anas):
@@ -281,6 +328,6 @@ class GateOutputParser84(GateOutputParser):
                     value = entry.xpath('./string')[1].text
                     feats[feat] = value
                 if feats.get('incorrect'):
-                    feats['lemma'] = tup[WORD]
+                    feats['lemma'] = word
                 ret.append(feats)
         return ret

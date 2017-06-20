@@ -12,10 +12,15 @@ class GATEPreprocessor(Preprocessor):
     NAME = 'GATE'
     DESCRIPTION = 'GATE preprocessor'
 
-    def __init__(self, gate_props, max_length=10000, restart_every='no',
+    def __init__(self, gate_props,
+                 modules='QT,HFSTLemm,ML3-PosLem-hfstcode',
+                 token_feats='string,lemma,hfstana,anas',
+                 max_length=10000, restart_every='no',
                  restart_at=0, anas='no', gate_version=8.4):
         super(GATEPreprocessor, self).__init__()
         self.gate_props = gate_props
+        self.modules = modules
+        self.token_feats = token_feats
         self.max_length = max_length
         self.anas = anas
         self.gate = None
@@ -41,7 +46,8 @@ class GATEPreprocessor(Preprocessor):
         processing process, not in the main one.
         """
         if not self.gate:
-            self.gate = Gate(self.gate_props, self.restart_line,
+            self.gate = Gate(self.gate_props, self.modules, self.token_feats,
+                             self.anas, self.restart_line,
                              gate_version=self.gate_version)
 
     def cleanup(self):
@@ -50,6 +56,11 @@ class GATEPreprocessor(Preprocessor):
         self.gate = None
 
     def preprocess(self, input_stream, output_stream):
+        if (
+            self.restart_file and self.files_read and
+            self.files_read % self.restart_file == 0
+        ):
+            self.gate.restart_server()
         for chunk, parsed in enumerate(self.__parse_with_gate(input_stream)):
             if chunk > 0:
                 # Preserve the empty sentence separator line between chunks
@@ -58,11 +69,6 @@ class GATEPreprocessor(Preprocessor):
                                for sent in parsed),
                   file=output_stream)
         self.files_read += 1
-        if (
-            self.restart_file and self.files_read and
-            self.files_read % self.restart_file == 0
-        ):
-            self.gate.restart_server()
 
     def __parse_with_gate(self, input_stream):
         """
@@ -74,10 +80,10 @@ class GATEPreprocessor(Preprocessor):
         for txt in input_stream:
             text += txt
             if len(text) > self.max_length:
-                yield self.gate.parse(text, self.anas)
+                yield self.gate.parse(text)
                 text = ''
         if text:
-            yield self.gate.parse(text, self.anas)
+            yield self.gate.parse(text)
 
     @classmethod
     def instantiate(cls, process_id=1, **kwargs):

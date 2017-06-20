@@ -45,6 +45,10 @@ max_length = integer(default=10000)
 # feature should be used in a multiprocessing setting.
 # TODO include it instead as a section.
 gate_props = string()
+# The modules to run on the text.
+modules = string(default='QT,HFSTLemm,ML3-PosLem-hfstcode')
+# The token features to extract and their ordering
+token_feats = string(default='string,lemma,hfstana,anas')
 # The length of a text chunk sent to the server.
 max_length = integer(default=10000)
 # Restart the GATE server after every {restart_at} {restart_every}s to avoid
