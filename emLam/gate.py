@@ -34,10 +34,6 @@ class GateError(Exception):
 class Gate(object):
     """hunlp-GATE interface object."""
 
-    # Defaults for the token features (needed because stupid GATE does not
-    # add the ROOT/0 dependency to the verb)
-    DEFAULTS = {'depTarget': 0, 'depType': 'ROOT', '_': '_'}
-
     def __init__(self, gate_props, modules, token_feats, get_anas='no',
                  restart_every=0, gate_version=8.4):
         """
@@ -54,16 +50,15 @@ class Gate(object):
         self.gate_dir = os.path.dirname(gate_props)
         self.gate_url = self.__gate_url()
         self.modules = modules
-        self.token_feats = {f: i for i, f in enumerate(token_feats.split(','))}
         self.get_anas = get_anas
         self.restart_every = restart_every
         self.server = None
         self.parsed = 0
-        if (self.get_anas == 'no') == ('anas' in self.token_feats):
+        if (self.get_anas == 'no') == ('anas' in token_feats):
             raise ValueError(
                 'Invalid setup: anas should be "no" if and only if it is not '
                 'in token_feats')
-        self.parser = GateOutputParser.get_parser(self.token_feats, gate_version)
+        self.parser = GateOutputParser.get_parser(token_feats, gate_version)
         self.__start_server()
 
     def __del__(self):
@@ -160,8 +155,14 @@ class Gate(object):
 
 class GateOutputParser(object):
     """Class for parsing the GATE output XML."""
+
+    # Defaults for the token features (needed because stupid GATE does not
+    # add the ROOT/0 dependency to the verb)
+    DEFAULTS = {'depTarget': '0', 'depType': 'ROOT', '_': '_'}
+
     def __init__(self, token_feats):
-        self.token_feats = token_feats
+        self.token_feats_list = token_feats.split(',')
+        self.token_feats = {f: i for i, f in enumerate(self.token_feats_list)}
         self.logger = logging.getLogger('emLam.GATE')
         self.logger.debug('GATE parser class: {}'.format(self.__class__.__name__))
 
@@ -187,7 +188,9 @@ class GateOutputParser(object):
             if event == 'start':
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
-                        tup = [self.DEFAULTS.get(tf) for tf in self.token_feats]
+                        self.logger.info('TF: {}'.format(self.token_feats_list))
+                        tup = [self.DEFAULTS.get(tf) for tf in self.token_feats_list]
+                        self.logger.info('TUP: {}'.format(tup))
             else:  # end
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
