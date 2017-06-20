@@ -195,6 +195,8 @@ class GateOutputParser(object):
         self.token_feats = {f: i for i, f in enumerate(self.token_feats_list)}
         self.logger = logging.getLogger('emLam.GATE')
         self.logger.debug('GATE parser class: {}'.format(self.__class__.__name__))
+        # Whether we need to fix the ids (GATE global ids to per sentence ids)
+        self.fix_ids = set('id', 'depTarget') & set(token_feats)
 
     @staticmethod
     def get_parser(token_feats, gate_version=8.4):
@@ -213,7 +215,9 @@ class GateOutputParser(object):
         text, sent = [], []
         curr_token_feat = None
         data = None
-        for event, node in etree.iterparse(xml_file, huge_tree=True, encoding='utf-8', events=['start', 'end']):
+        for event, node in etree.iterparse(
+            xml_file, huge_tree=True, encoding='utf-8', events=['start', 'end']
+        ):
             if event == 'start':
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
@@ -229,10 +233,12 @@ class GateOutputParser(object):
                         if lemma is None or '<incorrect_word>' in lemma:
                             data['lemma'] = data.get('string', lemma)
                         data['id'].set(node.get('Id'))
-                        sent.append(
-                            [data[tf].get() for tf in self.token_feats_list])
+                        sent.append(data)
                         data = None
                     elif node.get('Type') == 'Sentence':
+                        self.fix_id_and_dep(sent)
+                        sent = [[token[tf].get() for tf in self.token_feats_list]
+                                for token in sent]
                         text.append(sent)
                         sent = []
                 elif node.tag == 'Name' and data is not None:
@@ -241,6 +247,19 @@ class GateOutputParser(object):
                     data[curr_token_feat].set(node.text)
                     curr_token_feat = None
         return text
+
+    def fix_id_and_dep(self, sentence):
+        """
+        Fixes the IDs of the words in the sentence so that it starts from 1 and
+        the ROOT is 0. Only run if either id or dep* is a requested feature.
+        """
+        if self.fix_ids:
+            mapping = {-1: 0}
+            for i, data in enumerate(sentence, 1):
+                mapping[int(data['id'])] = i
+            for data in sentence:
+                data['id'] = mapping[data['id']]
+                data['depTarget'] = mapping[data['depTarget']]
 
     def parse_gate_xml(self, xml, anas='no'):
         """Parses a GATE response from memory."""
