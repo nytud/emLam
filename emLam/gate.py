@@ -36,7 +36,7 @@ class Gate(object):
 
     # Defaults for the token features (needed because stupid GATE does not
     # add the ROOT/0 dependency to the verb)
-    DEFAULTS = {'depTarget': 0, 'depType': 'ROOT'}
+    DEFAULTS = {'depTarget': 0, 'depType': 'ROOT', '_': '_'}
 
     def __init__(self, gate_props, modules, token_feats, get_anas='no',
                  restart_every=0, gate_version=8.4):
