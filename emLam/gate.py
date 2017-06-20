@@ -218,7 +218,7 @@ class GateOutputParser(object):
             else:  # end
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
-                        lemma = data.get('lemma')
+                        lemma = data['lemma'].value
                         # The lemma might be None
                         if lemma is None or '<incorrect_word>' in lemma:
                             data['lemma'] = data.get('string', lemma)
