@@ -196,7 +196,7 @@ class GateOutputParser(object):
         self.logger = logging.getLogger('emLam.GATE')
         self.logger.debug('GATE parser class: {}'.format(self.__class__.__name__))
         # Whether we need to fix the ids (GATE global ids to per sentence ids)
-        self.fix_ids = set('id', 'depTarget') & set(token_feats)
+        self.fix_ids = set(['id', 'depTarget']) & set(self.token_feats_list)
 
     @staticmethod
     def get_parser(token_feats, gate_version=8.4):
@@ -254,12 +254,12 @@ class GateOutputParser(object):
         the ROOT is 0. Only run if either id or dep* is a requested feature.
         """
         if self.fix_ids:
-            mapping = {-1: 0}
+            mapping = {'-1': '0'}
             for i, data in enumerate(sentence, 1):
-                mapping[int(data['id'])] = i
+                mapping[data['id'].get()] = str(i)
             for data in sentence:
-                data['id'] = mapping[data['id']]
-                data['depTarget'] = mapping[data['depTarget']]
+                data['id'].set(mapping[data['id'].get()])
+                data['depTarget'].set(mapping[data['depTarget'].get()])
 
     def parse_gate_xml(self, xml, anas='no'):
         """Parses a GATE response from memory."""
