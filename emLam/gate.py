@@ -7,6 +7,7 @@ try:
     from configparser import RawConfigParser
 except:
     from ConfigParser import RawConfigParser
+from collection import defaultdict
 from future.moves.urllib.parse import urlencode
 from io import open, BytesIO, StringIO
 import json
@@ -15,12 +16,9 @@ import os
 import re
 from subprocess import Popen
 import time
-import warnings
 
 from lxml import etree
 import requests
-
-from emLam import WORD, LEMMA
 
 
 _anas_p = re.compile(r'ana=([^}]+), feats=([^}]+])(?:, incorrect=([^,}]+))?, '
@@ -153,12 +151,37 @@ class Gate(object):
                 u'Number of tries exceeded with server {}'.format(self.gate_props))
 
 
+class Feature(object):
+    def __init__(self, default=None):
+        self.default = default
+        self.value = None
+
+    def set(self, orig_value):
+        """Might modify the original value."""
+        self.value = orig_value
+
+
+class DepTargetFeature(Feature):
+    """Adds 1 to the depTarget, because the ML in GATE starts at 0..."""
+    def set(self, orig_value):
+        self.value = str(int(orig_value) + 1)
+
+
+class DefaultFeature(Feature):
+    """Always returns the default."""
+    def __init__(self, default=None):
+        super(DefaultFeature, self).__init__(default)
+        self.value = self.default
+
+
 class GateOutputParser(object):
     """Class for parsing the GATE output XML."""
 
     # Defaults for the token features (needed because stupid GATE does not
     # add the ROOT/0 dependency to the verb)
-    DEFAULTS = {'depTarget': '0', 'depType': 'ROOT', '_': '_'}
+    DEFAULTS = {'depTarget': DepTargetFeature(0), 'depType': Feature('ROOT'),
+                '_': DefaultFeature('_')}
+    DEFAULT_F = Feature()
 
     def __init__(self, token_feats):
         self.token_feats_list = token_feats.split(',')
@@ -183,81 +206,61 @@ class GateOutputParser(object):
 
         text, sent = [], []
         curr_token_feat = None
-        tup = None
+        data = None
         for event, node in etree.iterparse(xml_file, huge_tree=True, encoding='utf-8', events=['start', 'end']):
             if event == 'start':
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
-                        self.logger.info('TF: {}'.format(self.token_feats_list))
-                        tup = [self.DEFAULTS.get(tf) for tf in self.token_feats_list]
-                        self.logger.info('TUP: {}'.format(tup))
+                        data = defaultdict(lambda: self.DEFAULT_F)
+                        data.update({tf: self.DEFAULTS[tf].default
+                                     for tf in self.token_feats_list
+                                     if tf in self.DEFAULTS})
             else:  # end
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
+                        lemma = data.get('lemma')
                         # The lemma might be None
-                        if tup[LEMMA] is None or '<incorrect_word>' in tup[LEMMA]:
-                            tup[LEMMA] = tup[WORD]
-                        sent.append(self.extract_anas(tup, get_anas))
-                        tup = None
+                        if lemma is None or '<incorrect_word>' in lemma:
+                            data['lemma'] = data.get('string', lemma)
+                        data['id'].set(node.get('Id'))
+                        sent.append(
+                            [data[tf].value for tf in self.token_feats_list])
+                        data = None
                     elif node.get('Type') == 'Sentence':
                         text.append(sent)
                         sent = []
-                elif node.tag == 'Name' and tup and node.text in self.token_feats:
+                elif node.tag == 'Name' and data is not None:
                     curr_token_feat = node.text
                 elif node.tag == 'Value' and curr_token_feat:
-                    tup[self.token_feats[curr_token_feat]] = node.text
+                    data[curr_token_feat].set(node.text)
                     curr_token_feat = None
-        return text
-
-    def parse_gate_xml_file_dom(self, xml_file, get_anas='no'):
-        """
-        Parses a GATE response from a file. Deprecated in favor of
-        parse_gate_xml_file().
-        """
-        warnings.warn('parse_gate_xml_file_dom() is deprecated, as it '
-                      'cannot handle arbirarily large large inputs. Use '
-                      'parse_gate_xml_file() instead.', DeprecationWarning)
-        dom = etree.parse(xml_file)
-        root = dom.getroot()
-        text, sent = [], []
-        for a in root.xpath('./AnnotationSet/Annotation[@Type!="SpaceToken"]'):
-            if a.attrib['Type'] == 'Token':
-                word = a.find('Feature[Name="string"]').find('Value').text
-                lemma = a.find('Feature[Name="lemma"]').find('Value').text
-                pos = a.find('Feature[Name="hfstana"]').find('Value').text
-                anas = a.find('Feature[Name="anas"]').find('Value').text or ''
-                tup = [word, lemma if lemma else word, pos, anas]
-                sent.append(self.extract_anas(tup, get_anas))
-            else:
-                text.append(sent)
-                sent = []
         return text
 
     def parse_gate_xml(self, xml, anas='no'):
         """Parses a GATE response from memory."""
         return self.parse_gate_xml_file(BytesIO(xml), anas)
 
-    def extract_anas(self, tup, get_anas):
-        """Extracts the anas and writes them back to tup as a json list."""
+    def extract_anas(self, data, get_anas):
+        """Extracts the anas and writes them back to data as a json list."""
         if get_anas != 'no':
-            anas = tup[self.token_feats['anas']]
+            anas = data['anas'].value
             if anas:
-                word = tup[self.token_feats['string']]
+                word = data['string']
                 try:
                     all_anas = self.parse_anas(anas, word)
                 except:
                     self.logger.exception(
-                        u'Could not parse anas "{}"; {}'.format(anas, tup))
+                        u'Could not parse anas "{}"; {}'.format(anas, data))
                     raise
             else:
                 all_anas = []
             if get_anas == 'matching':
-                lemma = tup[self.token_feats['lemma']]
-                pos = tup[self.token_feats['hfstana']]
+                lemma = data['lemma'].value
+                pos = data['hfstana'].value
                 all_anas = [a for a in all_anas if
                             a['lemma'] == lemma and a['feats'] == pos]
-            tup[self.token_feats['anas']] = json.dumps(all_anas)
-        return tup
+            data['anas'] = json.dumps(all_anas)
+        return data
 
     def parse_anas(self, anas, word):
         """
