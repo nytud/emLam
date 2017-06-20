@@ -33,6 +33,11 @@ class GateError(Exception):
 
 class Gate(object):
     """hunlp-GATE interface object."""
+
+    # Defaults for the token features (needed because stupid GATE does not
+    # add the ROOT/0 dependency to the verb)
+    DEFAULTS = {'depTarget': 0, 'depType': 'ROOT'}
+
     def __init__(self, gate_props, modules, token_feats, get_anas='no',
                  restart_every=0, gate_version=8.4):
         """
@@ -182,7 +187,7 @@ class GateOutputParser(object):
             if event == 'start':
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
-                        tup = ['' for _ in range(len(self.token_feats))]
+                        tup = [self.DEFAULTS.get(tf) for tf in self.token_feats]
             else:  # end
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
