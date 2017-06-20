@@ -7,7 +7,7 @@ try:
     from configparser import RawConfigParser
 except:
     from ConfigParser import RawConfigParser
-from collection import defaultdict
+from collections import defaultdict
 from future.moves.urllib.parse import urlencode
 from io import open, BytesIO, StringIO
 import json
