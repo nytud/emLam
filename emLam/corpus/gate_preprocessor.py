@@ -65,7 +65,6 @@ class GATEPreprocessor(Preprocessor):
             if chunk > 0:
                 # Preserve the empty sentence separator line between chunks
                 print(u'', file=output_stream)
-            self.logger.info('PARSED: {}'.format(parsed))
             print(u'\n\n'.join(u'\n'.join(u'\t'.join(token) for token in sent)
                                for sent in parsed),
                   file=output_stream)

@@ -160,6 +160,13 @@ class Feature(object):
         """Might modify the original value."""
         self.value = orig_value
 
+    def get(self):
+        return self.value if self.value is not None else self.default
+
+    def __repr__(self):
+        return '{}({} / {})'.format(
+            self.__class__.__name__, self.value, self.default)
+
 
 class DepTargetFeature(Feature):
     """Adds 1 to the depTarget, because the ML in GATE starts at 0..."""
@@ -179,9 +186,9 @@ class GateOutputParser(object):
 
     # Defaults for the token features (needed because stupid GATE does not
     # add the ROOT/0 dependency to the verb)
-    DEFAULTS = {'depTarget': DepTargetFeature(0), 'depType': Feature('ROOT'),
-                '_': DefaultFeature('_')}
-    DEFAULT_F = Feature()
+    DEFAULTS = {'depTarget': lambda: Feature('-1'),
+                'depType': lambda: Feature('ROOT'),
+                '_': lambda: DefaultFeature('_')}
 
     def __init__(self, token_feats):
         self.token_feats_list = token_feats.split(',')
@@ -203,7 +210,6 @@ class GateOutputParser(object):
         if the analysis for a word is too long. Much uglier than the dom-based
         solution, but what can one do?
         """
-
         text, sent = [], []
         curr_token_feat = None
         data = None
@@ -211,8 +217,8 @@ class GateOutputParser(object):
             if event == 'start':
                 if node.tag == 'Annotation':
                     if node.get('Type') == 'Token':
-                        data = defaultdict(lambda: self.DEFAULT_F)
-                        data.update({tf: self.DEFAULTS[tf].default
+                        data = defaultdict(lambda: Feature())
+                        data.update({tf: self.DEFAULTS[tf]()
                                      for tf in self.token_feats_list
                                      if tf in self.DEFAULTS})
             else:  # end
@@ -224,7 +230,7 @@ class GateOutputParser(object):
                             data['lemma'] = data.get('string', lemma)
                         data['id'].set(node.get('Id'))
                         sent.append(
-                            [data[tf].value for tf in self.token_feats_list])
+                            [data[tf].get() for tf in self.token_feats_list])
                         data = None
                     elif node.get('Type') == 'Sentence':
                         text.append(sent)
