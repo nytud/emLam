@@ -116,7 +116,7 @@ class Gate(object):
                 if self.restart_every:
                     self.parsed += len(parsed)
                     if self.parsed >= self.restart_every:
-                        self.__restart_server()
+                        self.restart_server()
                 return parsed
         except GateError as ge:
             self.__stop_server()
@@ -140,7 +140,7 @@ class Gate(object):
                         e, self.gate_url, tries + 1))
                 r = None
             if not r:
-                self.__restart_server()
+                self.restart_server()
             if r:
                 return r.content
         else:
