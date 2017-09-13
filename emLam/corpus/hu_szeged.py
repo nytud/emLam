@@ -12,6 +12,7 @@ class SzegedCorpus(GoldCorpus):
     DESCRIPTION = 'Szeged Treebank'
 
     def __init__(self, keep_columns):
+        super(SzegedCorpus, self).__init__()
         self.keep_columns = keep_columns
 
     def convert_input(self, input_stream):
