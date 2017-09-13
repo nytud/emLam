@@ -70,3 +70,7 @@ quntoken = string()
 max_length = integer(min=0, default=10000)
 # The directory used to create temporary files. The default is the RAM disk.
 tmp_dir = string(default="/dev/shm")
+
+[[GoldToRaw]]
+# The field (int) to create running text from.
+field = integer(default=0)
