@@ -54,9 +54,11 @@ class QunTokenErrors(Preprocessor):
     def __run_quntoken(self, sentences):
         if len(sentences) == 0:
             return True
-        with NamedTemporaryFile(delete=False, dir=self.tmp_dir) as infile:
+        with NamedTemporaryFile(delete=False, dir=self.tmp_dir, mode='wb') as infile:
             for sentence in sentences:
-                print(sentence.encode('utf-8'), file=infile)
+                infile.write(sentence.encode('utf-8'))
+                infile.write('\n'.encode('utf-8'))
+                #print(sentence.encode('utf-8'), file=infile)
         p = Popen([self.quntoken, infile.name], stdout=PIPE, stderr=PIPE)
         _, _ = p.communicate()
         os.unlink(infile.name)
