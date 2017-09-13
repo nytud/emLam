@@ -45,7 +45,7 @@ class Gate(object):
         # Opt: ML3-SSTok
         self.logger = logging.getLogger('emLam.GATE')
         self.gate_props = gate_props
-        self.gate_dir = os.path.dirname(gate_props)
+        self.gate_dir = os.path.dirname(os.path.abspath(gate_props))
         self.gate_url = self.__gate_url()
         self.modules = modules
         self.get_anas = get_anas
