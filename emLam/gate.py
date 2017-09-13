@@ -233,6 +233,7 @@ class GateOutputParser(object):
                         if lemma is None or '<incorrect_word>' in lemma:
                             data['lemma'] = data.get('string', lemma)
                         data['id'].set(node.get('Id'))
+                        self.extract_anas(data, get_anas)
                         sent.append(data)
                         data = None
                     elif node.get('Type') == 'Sentence':
@@ -284,7 +285,7 @@ class GateOutputParser(object):
                 pos = data['hfstana'].value
                 all_anas = [a for a in all_anas if
                             a['lemma'] == lemma and a['feats'] == pos]
-            data['anas'] = json.dumps(all_anas)
+            data['anas'].set(json.dumps(all_anas))
         return data
 
     def parse_anas(self, anas, word):
