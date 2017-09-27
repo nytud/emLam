@@ -26,6 +26,10 @@ compressed = boolean(default=yes)
 # The HTML entity / characters ratio above which a sentence is discarded.
 max_entities = float(min=0, max=1, default=0.2)
 
+[[[text]]]
+# Return at most this many consecutive lines. If 0, do not impose any limit.
+chunk_lines = integer(min=0, default=0)
+
 # Preprocessor settings
 [Preprocessor]
 

@@ -273,7 +273,7 @@ class GateOutputParser(object):
             if anas:
                 word = data['string']
                 try:
-                    all_anas = self.parse_anas(anas, word)
+                    all_anas = self.parse_anas(anas, word.get())
                 except:
                     self.logger.exception(
                         u'Could not parse anas "{}"; {}'.format(anas, data))
@@ -285,7 +285,12 @@ class GateOutputParser(object):
                 pos = data['hfstana'].value
                 all_anas = [a for a in all_anas if
                             a['lemma'] == lemma and a['feats'] == pos]
-            data['anas'].set(json.dumps(all_anas))
+            try:
+                data['anas'].set(json.dumps(all_anas))
+            except TypeError:
+                self.logger.exception(
+                    u'Could not json.dumps anas "{}"; {}'.format(all_anas, data))
+                raise
         return data
 
     def parse_anas(self, anas, word):

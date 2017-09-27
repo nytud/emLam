@@ -138,6 +138,7 @@ def process_file(components, queue, logging_level=None, logging_queue=None):
     # Then we can instantiate the objects that do the actual work
     corpus = corpus_cls.instantiate(
         pid, **cascade_section(config, corpus_cls.name))
+    logger.debug('Configuration: {}'.format(cascade_section(config, corpus_cls.name)))
     preprocessor = preprocessor_cls.instantiate(
         pid, **cascade_section(config, preprocessor_cls.name))
     preprocessor.initialize()
