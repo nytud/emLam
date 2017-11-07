@@ -12,7 +12,7 @@ def readme():
         return f.read()
 
 setup(name='emlam',
-      version='1.1.0',
+      version='1.1.1',
       description='Scripts and tools for Hungarian Language Modeling',
       long_description=readme(),
       url='https://github.com/DavidNemeskey/emLam',
@@ -75,7 +75,9 @@ setup(name='emlam',
           # iterparse is broken in 3.7.3. :)
           'lxml==3.6.4',
           # Better configuration files.
-          'configobj'
+          'configobj',
+          # Better regex
+          'regex'
       ],
       # zip_safe=False,
       use_2to3=False)

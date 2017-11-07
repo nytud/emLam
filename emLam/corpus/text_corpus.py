@@ -33,7 +33,6 @@ class TextCorpus(RawCorpus):
                         #     len(lines), self.chunk_lines, type(len(lines)),
                         #     type(self.chunk_lines), len(lines) == self.chunk_lines))
                         if len(lines) == self.chunk_lines:
-                            self.logger.info('lines equal!')
                             for chunk in split_for_qt(u'\n'.join(lines)):
                                 yield chunk
                             lines = []
