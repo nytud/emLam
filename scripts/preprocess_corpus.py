@@ -16,6 +16,7 @@ from queue import Empty
 from emLam.corpus import get_all_corpora, get_all_preprocessors
 from emLam.corpus.corpus_base import GoldCorpus
 from emLam.corpus.preprocessor_base import CopyPreprocessor
+from emLam.corpus.gold_to_raw import GoldToRaw
 from emLam.utils import run_queued, setup_queue_logger
 from emLam.utils.config import cascade_section, handle_errors, load_config
 
@@ -83,7 +84,7 @@ def parse_arguments():
     args.preprocessor, preprocessor_path = preprocessors[args.preprocessor]
     if (
         issubclass(args.corpus, GoldCorpus) and
-        args.preprocessor != CopyPreprocessor
+        args.preprocessor not in [CopyPreprocessor, GoldToRaw]
     ):
         parser.error("Gold standard corpora can only be used with the ``copy'' "
                      "preprocessor.")
@@ -137,6 +138,7 @@ def process_file(components, queue, logging_level=None, logging_queue=None):
     # Then we can instantiate the objects that do the actual work
     corpus = corpus_cls.instantiate(
         pid, **cascade_section(config, corpus_cls.name))
+    logger.debug('Configuration: {}'.format(cascade_section(config, corpus_cls.name)))
     preprocessor = preprocessor_cls.instantiate(
         pid, **cascade_section(config, preprocessor_cls.name))
     preprocessor.initialize()

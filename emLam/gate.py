@@ -45,7 +45,7 @@ class Gate(object):
         # Opt: ML3-SSTok
         self.logger = logging.getLogger('emLam.GATE')
         self.gate_props = gate_props
-        self.gate_dir = os.path.dirname(gate_props)
+        self.gate_dir = os.path.dirname(os.path.abspath(gate_props))
         self.gate_url = self.__gate_url()
         self.modules = modules
         self.get_anas = get_anas
@@ -116,7 +116,7 @@ class Gate(object):
                 if self.restart_every:
                     self.parsed += len(parsed)
                     if self.parsed >= self.restart_every:
-                        self.__restart_server()
+                        self.restart_server()
                 return parsed
         except GateError as ge:
             self.__stop_server()
@@ -140,7 +140,7 @@ class Gate(object):
                         e, self.gate_url, tries + 1))
                 r = None
             if not r:
-                self.__restart_server()
+                self.restart_server()
             if r:
                 return r.content
         else:
@@ -233,6 +233,7 @@ class GateOutputParser(object):
                         if lemma is None or '<incorrect_word>' in lemma:
                             data['lemma'] = data.get('string', lemma)
                         data['id'].set(node.get('Id'))
+                        self.extract_anas(data, get_anas)
                         sent.append(data)
                         data = None
                     elif node.get('Type') == 'Sentence':
@@ -272,7 +273,7 @@ class GateOutputParser(object):
             if anas:
                 word = data['string']
                 try:
-                    all_anas = self.parse_anas(anas, word)
+                    all_anas = self.parse_anas(anas, word.get())
                 except:
                     self.logger.exception(
                         u'Could not parse anas "{}"; {}'.format(anas, data))
@@ -284,7 +285,12 @@ class GateOutputParser(object):
                 pos = data['hfstana'].value
                 all_anas = [a for a in all_anas if
                             a['lemma'] == lemma and a['feats'] == pos]
-            data['anas'] = json.dumps(all_anas)
+            try:
+                data['anas'].set(json.dumps(all_anas))
+            except TypeError:
+                self.logger.exception(
+                    u'Could not json.dumps anas "{}"; {}'.format(all_anas, data))
+                raise
         return data
 
     def parse_anas(self, anas, word):

@@ -39,6 +39,6 @@ class Component(with_metaclass(NamedClass, object)):
         """
         argspec = inspect.getargspec(cls.__init__).args
         component_args = {k: kwargs[k] for k in argspec[1:] if k in kwargs}
-        logging.getLogger(cls.name).debug(
+        logging.getLogger(cls.__module__).debug(
             'Instantiating with parameters {}'.format(component_args))
         return cls(**component_args)

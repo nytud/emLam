@@ -12,12 +12,13 @@ class SzegedCorpus(GoldCorpus):
     DESCRIPTION = 'Szeged Treebank'
 
     def __init__(self, keep_columns):
+        super(SzegedCorpus, self).__init__()
         self.keep_columns = keep_columns
 
     def convert_input(self, input_stream):
         for line_no, line in enumerate(input_stream):
             if line == '\n':
-                yield u''
+                yield u'\n'
             else:
                 fields = line.rstrip('\n').split('\t')
                 pos_start = fields[LEMMA_POS].find('[')
@@ -31,4 +32,4 @@ class SzegedCorpus(GoldCorpus):
                 out_fields = [fields[WORD], lemma, pos]
                 if self.keep_columns:
                     out_fields.extend(fields[2:-1])
-                yield u'\t'.join(out_fields)
+                yield u'\t'.join(out_fields) + u'\n'

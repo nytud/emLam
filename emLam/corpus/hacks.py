@@ -6,11 +6,11 @@ Various hacks for getting around limitations / bugs in GATE, QunToken, etc.
 Ideally, this file should be empty.
 """
 
-import re
+import regex
 
 # Maximum length of a paragraph (longer P's break QunToken)
 __max_p_length = 60000
-__eos = re.compile(u'[a-záéíóöőúüű]{4,}[.!?]+')
+__eos = regex.compile(u'(?<=[a-záéíóöőúüű]{4,}|\s+)[.!?]+')
 
 def split_for_qt(text, sep='\n\n'):
     """
