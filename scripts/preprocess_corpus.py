@@ -17,7 +17,7 @@ from emLam.corpus import get_all_corpora, get_all_preprocessors
 from emLam.corpus.corpus_base import GoldCorpus
 from emLam.corpus.preprocessor_base import CopyPreprocessor
 from emLam.corpus.gold_to_raw import GoldToRaw
-from emLam.utils import run_queued, setup_queue_logger
+from emLam.utils import openall, run_queued, setup_queue_logger
 from emLam.utils.config import cascade_section, handle_errors, load_config
 
 
@@ -56,8 +56,10 @@ def parse_arguments():
         description='Preprocesses the specified corpus.',
         formatter_class=RawDescriptionHelpFormatter,
         epilog=usage_epilog(corpora, preprocessors))
-    parser.add_argument('--source-dir', '-s', required=True,
-                        help='the source directory.')
+    parser.add_argument('--source', '-s', required=True,
+                        help='the data source. Either a directory, in which '
+                             'all files added to the input recursively, or a '
+                             'file that lists all input files.')
     parser.add_argument('--target-dir', '-t', required=True,
                         help='the target directory.')
     parser.add_argument('--corpus', '-c', required=True,
@@ -77,7 +79,9 @@ def parse_arguments():
                         help='the logging level.')
 
     args = parser.parse_args()
-    if args.source_dir == args.target_dir:
+    if not op.exists(args.source):
+        parser.error('Source {} does not exist.'.format(args.source))
+    if args.source == args.target_dir:
         parser.error('Source and target directories must differ.')
 
     args.corpus, corpus_path = corpora[args.corpus]
@@ -114,14 +118,37 @@ def walk_non_hidden(directory):
         yield tup
 
 
-def source_target_file_list(source_dir, target_dir):
-    source_dir = op.abspath(source_dir)
+def source_target_file_list(source, target_dir):
+    """
+    Based on the source and target directory provided, returns
+    source-target file pairs.
+    """
+    source = op.abspath(source)
     target_dir = op.abspath(target_dir)
-    source_files = [op.abspath(op.join(d, f))
-                    for d, _, fs in walk_non_hidden(source_dir) for f in fs]
+
+    # Directory source
+    if op.isdir(source):
+        source_files = [op.abspath(op.join(d, f))
+                        for d, _, fs in walk_non_hidden(source) for f in fs]
+        source_dir = source
+    # File list source
+    elif op.isfile(source):
+        with openall(source) as inf:
+            source_files = [op.abspath(p) for p in inf.read().split()]
+        # To be able to keep the directory structure, if any. If there is no
+        # common path prefix, the target directory will be flat (see below)
+        source_dir = op.commonpath(source_files)
+        if source_dir == '/':  # FIXME: no idea how this works on Windows
+            source_dir = ''
+    else:
+        raise ValueError('Source {} does not exist.'.format(source))
+
     target_files = []
     for sf in source_files:
-        sf_rel = sf[len(source_dir):].lstrip(os.sep)
+        if source_dir:
+            sf_rel = sf[len(source_dir):].lstrip(os.sep)  # Structure
+        else:
+            sf_rel = op.basename(sf)  # Flat
         tf = op.join(target_dir, sf_rel)
         td = op.dirname(tf)
         if not op.isdir(td):
@@ -171,7 +198,7 @@ def main():
 
     components = [(args.corpus, args.preprocessor, p + 1, config)
                   for p in range(args.processes)]
-    source_target_files = source_target_file_list(args.source_dir, args.target_dir)
+    source_target_files = source_target_file_list(args.source, args.target_dir)
 
     run_queued(process_file, components,
                args.processes, source_target_files, args.log_level)
