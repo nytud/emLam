@@ -17,7 +17,7 @@ from emLam.corpus import get_all_corpora, get_all_preprocessors
 from emLam.corpus.corpus_base import GoldCorpus
 from emLam.corpus.preprocessor_base import CopyPreprocessor
 from emLam.corpus.gold_to_raw import GoldToRaw
-from emLam.utils import openall, run_queued, setup_queue_logger
+from emLam.utils import run_queued, setup_queue_logger, source_target_file_list
 from emLam.utils.config import cascade_section, handle_errors, load_config
 
 
@@ -116,45 +116,6 @@ def walk_non_hidden(directory):
         delete_hidden(dirnames)
         delete_hidden(filenames)
         yield tup
-
-
-def source_target_file_list(source, target_dir):
-    """
-    Based on the source and target directory provided, returns
-    source-target file pairs.
-    """
-    source = op.abspath(source)
-    target_dir = op.abspath(target_dir)
-
-    # Directory source
-    if op.isdir(source):
-        source_files = [op.abspath(op.join(d, f))
-                        for d, _, fs in walk_non_hidden(source) for f in fs]
-        source_dir = source
-    # File list source
-    elif op.isfile(source):
-        with openall(source) as inf:
-            source_files = [op.abspath(p) for p in inf.read().split()]
-        # To be able to keep the directory structure, if any. If there is no
-        # common path prefix, the target directory will be flat (see below)
-        source_dir = op.commonpath(source_files)
-        if source_dir == '/':  # FIXME: no idea how this works on Windows
-            source_dir = ''
-    else:
-        raise ValueError('Source {} does not exist.'.format(source))
-
-    target_files = []
-    for sf in source_files:
-        if source_dir:
-            sf_rel = sf[len(source_dir):].lstrip(os.sep)  # Structure
-        else:
-            sf_rel = op.basename(sf)  # Flat
-        tf = op.join(target_dir, sf_rel)
-        td = op.dirname(tf)
-        if not op.isdir(td):
-            os.makedirs(td)
-        target_files.append(tf)
-    return zip(source_files, target_files)
 
 
 def process_file(components, queue, logging_level=None, logging_queue=None):

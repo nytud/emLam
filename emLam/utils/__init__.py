@@ -83,16 +83,43 @@ def allname(fn):
     return __allname_p.match(fn).groups()
 
 
-def source_target_file_list(source_dir, target_dir):
+def source_target_file_list(source, target_dir):
     """
-    Reads the list of files in source_dir, and returns a list of tuples, whose
-    first field is the path to the source file, and the second is the path to a
-    file with the same name in target_dir.
+    Based on the source and target directory provided, returns
+    source-target file pairs.
     """
-    files = filter(op.isfile,
-                   (op.join(source_dir, f) for f in os.listdir(source_dir)))
-    tuples = [(f, op.join(target_dir, op.basename(f))) for f in files]
-    return tuples
+    source = op.abspath(source)
+    target_dir = op.abspath(target_dir)
+
+    # Directory source
+    if op.isdir(source):
+        source_files = [op.abspath(op.join(d, f))
+                        for d, _, fs in walk_non_hidden(source) for f in fs]
+        source_dir = source
+    # File list source
+    elif op.isfile(source):
+        with openall(source) as inf:
+            source_files = [op.abspath(p) for p in inf.read().split()]
+        # To be able to keep the directory structure, if any. If there is no
+        # common path prefix, the target directory will be flat (see below)
+        source_dir = op.commonpath(source_files)
+        if source_dir == '/':  # FIXME: no idea how this works on Windows
+            source_dir = ''
+    else:
+        raise ValueError('Source {} does not exist.'.format(source))
+
+    target_files = []
+    for sf in source_files:
+        if source_dir:
+            sf_rel = sf[len(source_dir):].lstrip(os.sep)  # Structure
+        else:
+            sf_rel = op.basename(sf)  # Flat
+        tf = op.join(target_dir, sf_rel)
+        td = op.dirname(tf)
+        if not op.isdir(td):
+            os.makedirs(td)
+        target_files.append(tf)
+    return list(zip(source_files, target_files))
 
 
 @contextmanager
