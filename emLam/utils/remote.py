@@ -167,7 +167,7 @@ def do_it(remote_config, local_args):
         execute(
             run, "tmux send -t {} 'python {} {} > {} 2>&1' ENTER".format(
                 tid, os.path.join(infconf['remote_dir'], 'emLam',
-                                  'script', 'preprocess_corpus.py'),
+                                  'scripts', 'preprocess_corpus.py'),
                 remote_config['cmd_line'],
                 os.path.join(infconf['remote_dir'], 'emLam.log')),
             hosts=hosts
