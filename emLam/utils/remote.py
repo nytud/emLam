@@ -190,9 +190,9 @@ def cleanup(remote_config, local_args):
     if infconf['delete_remote_dir']:
         execute(run, 'rm -rf {}'.format(infconf['remote_dir']), hosts=hosts)
 
-    if not envconf['virtualenv'] and envconf['allow_user_packages']:
-        execute(run, 'pip uninstall emLam virtualenv',
-                warn_only=True, hosts=hosts)
+    with settings(warn_only=True):
+        if not envconf['virtualenv'] and envconf['allow_user_packages']:
+            execute(run, 'pip uninstall emLam virtualenv', hosts=hosts)
 
-    execute(run, 'tmux kill-session -t {}'.format(envconf['tmux']),
-            warn_only=True, hosts=hosts)
+        execute(run, 'tmux kill-session -t {}'.format(envconf['tmux']),
+                hosts=hosts)
