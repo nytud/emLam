@@ -97,6 +97,14 @@ def walk_non_hidden(directory):
         yield tup
 
 
+def commonpath(paths):
+    """Same as os.path.commonpath, but it is only available from 3.5."""
+    common = op.commonprefix(paths)
+    while common[-1] != os.sep:
+        common = common[:-1]
+    return common
+
+
 def source_target_file_list(source, target_dir):
     """
     Based on the source and target directory provided, returns
@@ -116,7 +124,7 @@ def source_target_file_list(source, target_dir):
             source_files = [op.abspath(p) for p in inf.read().split()]
         # To be able to keep the directory structure, if any. If there is no
         # common path prefix, the target directory will be flat (see below)
-        source_dir = op.commonpath(source_files)
+        source_dir = commonpath(source_files)
         if source_dir == '/':  # FIXME: no idea how this works on Windows
             source_dir = ''
     else:
