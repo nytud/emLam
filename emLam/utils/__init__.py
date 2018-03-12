@@ -144,6 +144,15 @@ def source_target_file_list(source, target_dir):
     return list(zip(source_files, target_files))
 
 
+def get_any_index(lst, *values):
+    """Returns the index of (the first of) a set of values in lst."""
+    for value in values:
+        try:
+            return lst.index(value)
+        except ValueError:
+            pass
+
+
 @contextmanager
 def __configure_logging(fn, processes, logging_level, **kwargs):
     if logging_level:

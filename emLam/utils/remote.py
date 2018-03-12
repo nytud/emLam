@@ -14,7 +14,7 @@ from fabric.api import cd, env, execute, put, run, task
 from fabric.context_managers import settings
 from fabric.contrib import files
 
-from emLam.utils import source_target_file_list
+from emLam.utils import get_any_index, source_target_file_list
 from emLam.utils.config import get_config_file
 
 
@@ -161,21 +161,35 @@ def setup(remote_config, local_args):
     execute(upload_input, inputs, remote_dir, hosts=hosts)
 
 
+@task
+def run_emLam(remote_config, processes):
+    tid = remote_config['Environment']['tmux']
+    infconf = remote_config['Infrastructure']
+
+    cmd_line = remote_config['cmd_line']
+    p_idx = get_any_index(cmd_line, '-P', '--processes')
+    if p_idx:
+        cmd_line[p_idx + 1] = processes[env.host_string]
+    else:
+        cmd_line.extend(['-P', processes[env.host_string]])
+
+    run("tmux send -t {} 'cd {}' ENTER".format(
+        tid, os.path.abspath(infconf['work_dir'])))
+    run("tmux send -t {} 'python {} {} > {} 2>&1' ENTER".format(
+        tid, os.path.join(infconf['remote_dir'], 'emLam',
+                          'scripts', 'preprocess_corpus.py'),
+        ' '.join(cmd_line),
+        os.path.join(infconf['remote_dir'], 'emLam.log')))
+
+
 def do_it(remote_config, local_args):
     """Runs the jobs parallelly."""
     hosts = remote_config['Resources']['hosts']
-    infconf = remote_config['Infrastructure']
-    tid = remote_config['Environment']['tmux']
-    execute(run, "tmux send -t {} 'cd {}' ENTER".format(
-        tid, os.path.abspath(infconf['work_dir'])), hosts=hosts)
-    execute(
-        run, "tmux send -t {} 'python {} {} > {} 2>&1' ENTER".format(
-            tid, os.path.join(infconf['remote_dir'], 'emLam',
-                              'scripts', 'preprocess_corpus.py'),
-            remote_config['cmd_line'],
-            os.path.join(infconf['remote_dir'], 'emLam.log')),
-        hosts=hosts
-    )
+
+    # Parallellism
+    processes = execute(parallellism, remote_config['Resources']['num_cores'],
+                        hosts=hosts)
+    execute(run_emLam, remote_config, processes, hosts=hosts)
 
 
 def cleanup(remote_config, local_args):

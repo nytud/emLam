@@ -21,6 +21,7 @@ from emLam.corpus.corpus_base import GoldCorpus
 from emLam.corpus.preprocessor_base import CopyPreprocessor
 from emLam.corpus.gold_to_raw import GoldToRaw
 from emLam.utils import run_queued, setup_queue_logger, source_target_file_list
+from emLam.utils import get_any_index
 from emLam.utils.config import cascade_section, handle_errors, load_config
 import emLam.utils.remote as remote
 
@@ -168,15 +169,6 @@ def run_locally(args, config):
                args.processes, source_target_files, args.log_level)
 
 
-def get_any_index(lst, *values):
-    """Returns the index of (the first of) a set of values in lst."""
-    for value in values:
-        try:
-            return lst.index(value)
-        except ValueError:
-            pass
-
-
 def get_remote_params(args):
     """
     Returns the remote command and configuration. Also amends the command line:
@@ -194,8 +186,7 @@ def get_remote_params(args):
     input_idx = get_any_index(cmd_fields, '-s', '--source')
     cmd_fields[input_idx + 1] = os.path.join(
         remote_config['Infrastructure']['remote_dir'], 'input.lst')
-    remote_config['cmd_line'] = ' '.join(cmd_fields)
-    print(remote_config['cmd_line'])
+    remote_config['cmd_line'] = cmd_fields
     return cmd, remote_config
 
 
