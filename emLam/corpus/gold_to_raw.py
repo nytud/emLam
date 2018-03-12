@@ -6,6 +6,8 @@ Converts a gold corpus to a raw one: connects the tokens in the selected
 field to running text.
 """
 
+from __future__ import absolute_import, division, print_function
+
 from emLam.corpus.preprocessor_base import Preprocessor
 
 
