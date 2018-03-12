@@ -121,20 +121,6 @@ def parse_arguments(args=None):
     return args, config
 
 
-def walk_non_hidden(directory):
-    """Walks directory as os.walk, skipping hidden files and directories."""
-    def delete_hidden(lst):
-        for i in range(len(lst) - 1, -1, -1):
-            if lst[i][0] == '.':
-                del lst[i]
-
-    for tup in os.walk(directory):
-        dirpath, dirnames, filenames = tup
-        delete_hidden(dirnames)
-        delete_hidden(filenames)
-        yield tup
-
-
 def process_file(components, queue, logging_level=None, logging_queue=None):
     corpus_cls, preprocessor_cls, pid, config = components
     # First set up the logger used by the corpus and the preprocessor
