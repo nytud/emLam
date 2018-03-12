@@ -97,7 +97,7 @@ def setup_environment(config, remote_dir, source_dir):
         raise FabricError('User packages are not allowed -- cannot run '
                           'without virtualenv.')
 
-    for _ in range(30):
+    for _ in range(120):
         if files.exists(sentinel):
             run('ls {}'.format(remote_dir))
             run('rm {}'.format(sentinel))
