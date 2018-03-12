@@ -1,0 +1,37 @@
+[Resources]
+# A (comma-separated) list of the remote hosts. Include localhost if you also
+# want to run the script locally.
+hosts = string()
+# The number of CPU cores a single process of the script needs. This determines
+# the extent of parallelization possible.
+num_cores = integer(default=8)
+
+[Infrastructure]
+# The directory where the infrastructure-related stuff are put
+remote_dir = string()
+delete_remote_dir = boolean(default=yes)
+# The work directory
+work_dir = string()
+
+[Environment]
+# The name of the tmux session to use
+tmux = string()
+# The name of the virtualenv to use. It will be created in remote_dir, so
+# no need to be unique. If the virtualenv package is not installed,
+# it will be as a user-level package. If empty, the global Python environment is
+# used; if emLam is not available, it will be installed as a user-level package
+# (but see below).
+virtualenv = string(default="venv")
+# Allow the installation of user-level packages. If disabled, the virtualenv
+# package must be available (see above).
+allow_user_packages = boolean(default=no)
+
+[Source]
+# If emLam is not available, the source is pulled and installed from GitHub.
+# With always_update on (the default), this will happen even if the package is
+# installed.
+always_update = boolean(default=yes)
+# The emLam repository.
+repository = string(default="https://github.com/dlt-rilmta/emLam")
+# The object to check out. The default is "master".
+object = string(default="master")

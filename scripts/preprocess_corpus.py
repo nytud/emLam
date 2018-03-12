@@ -9,6 +9,7 @@ Webcorpus and MNSZ2.
 from __future__ import absolute_import, division, print_function
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from builtins import range
+import copy
 from functools import partial
 import os
 import os.path as op
@@ -21,6 +22,7 @@ from emLam.corpus.preprocessor_base import CopyPreprocessor
 from emLam.corpus.gold_to_raw import GoldToRaw
 from emLam.utils import run_queued, setup_queue_logger, source_target_file_list
 from emLam.utils.config import cascade_section, handle_errors, load_config
+import emLam.utils.remote as remote
 
 
 def usage_epilog(corpora, preprocessors):
@@ -79,10 +81,16 @@ def parse_arguments(args=None):
     parser.add_argument('--processes', '-P', type=int, default=1,
                         help='the number of files to process parallelly.')
     parser.add_argument('--remote', '-R',
-                        help='a configuration file following '
-                             'remote_preprocessing.schema. Runs the script '
-                             'remotely. All other parameters are taken from '
-                             'this command line.')
+                        help='Runs the script remotely. The value is '
+                             'in the format <cmd>:<cf>, where <cf> is '
+                             'a configuration file following '
+                             'remote_preprocessing.schema, and <cmd> is '
+                             'the remote command: one of "setup", "run" and '
+                             '"cleanup" (with the usual semantics). All other '
+                             'parameters are taken from this command line. '
+                             'Note that this implies that the source and '
+                             'target directories must be reachable from all '
+                             'remote hosts.')
     parser.add_argument('--log-level', '-L', type=str, default=None,
                         choices=['debug', 'info', 'warning', 'error', 'critical'],
                         help='the logging level.')
@@ -162,8 +170,8 @@ def process_file(components, queue, logging_level=None, logging_queue=None):
         preprocessor.cleanup()
 
 
-def main():
-    args, config = parse_arguments()
+def run_locally(args, config):
+    """Runs the preprocessing locally."""
     os.nice(20)  # Play nice
 
     components = [(args.corpus, args.preprocessor, p + 1, config)
@@ -172,6 +180,54 @@ def main():
 
     run_queued(process_file, components,
                args.processes, source_target_files, args.log_level)
+
+
+def get_any_index(lst, *values):
+    """Returns the index of (the first of) a set of values in lst."""
+    for value in values:
+        try:
+            return lst.index(value)
+        except ValueError:
+            pass
+
+
+def get_remote_params(args):
+    """
+    Returns the remote command and configuration. Also amends the command line:
+    - removes the -R switch and its value
+    - changes the configuration file to remote_dir/rconfig.conf.
+    """
+    cmd, cf = args.remote.rsplit(':', 1)
+    remote_config = load_config(cf, 'remote_preprocessing.schema')[0]
+    cmd_fields = copy.copy(sys.argv[1:])
+    remote_idx = get_any_index(cmd_fields, '-R', '--remote')
+    del cmd_fields[remote_idx:remote_idx + 2]
+    config_idx = get_any_index(cmd_fields, '-C', '--configuration')
+    cmd_fields[config_idx] = os.path.join(
+        remote_config['Infrastructure']['remote_dir'], 'rconfig.conf')
+    input_idx = get_any_index(cmd_fields, '-s', '--source')
+    cmd_fields[input_idx] = os.path.join(
+        remote_config['Infrastructure']['remote_dir'], 'input.lst')
+    remote_config['cmd_line'] = ' '.join(cmd_fields)
+    print(remote_config['cmd_line'])
+    return cmd, remote_config
+
+
+def run_remotely(args, config):
+    """Runs the preprocessing remotely."""
+    cmd, remote_config = get_remote_params(args)
+    if cmd not in remote.commands:
+        raise ValueError('Remote commands must be one of {}'.format(
+            ', '.join(remote.commands)))
+    getattr(remote, cmd)(remote_config, args)
+
+
+def main():
+    args, config = parse_arguments()
+    if args.remote:
+        run_remotely(args, config)
+    else:
+        run_locally(args, config)
 
 
 if __name__ == '__main__':
