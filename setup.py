@@ -12,7 +12,7 @@ def readme():
         return f.read()
 
 setup(name='emlam',
-      version='1.1.3',
+      version='1.2.0',
       description='Scripts and tools for Hungarian Language Modeling',
       long_description=readme(),
       url='https://github.com/DavidNemeskey/emLam',
@@ -77,7 +77,9 @@ setup(name='emlam',
           # Better configuration files.
           'configobj',
           # Better regex
-          'regex'
+          'regex',
+          # Remote execution -- Python 3-compatible fork
+          'fabric3'
       ],
       # zip_safe=False,
       use_2to3=False)
