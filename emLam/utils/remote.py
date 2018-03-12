@@ -194,4 +194,5 @@ def cleanup(remote_config, local_args):
         execute(run, 'pip uninstall emLam virtualenv',
                 warn_only=True, hosts=hosts)
 
-    execute(run, 'tmux kill-session -t {}'.format(envconf['tmux']), hosts=hosts)
+    execute(run, 'tmux kill-session -t {}'.format(envconf['tmux']),
+            warn_only=True, hosts=hosts)
