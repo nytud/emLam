@@ -189,10 +189,10 @@ def get_remote_params(args):
     remote_idx = get_any_index(cmd_fields, '-R', '--remote')
     del cmd_fields[remote_idx:remote_idx + 2]
     config_idx = get_any_index(cmd_fields, '-C', '--configuration')
-    cmd_fields[config_idx] = os.path.join(
+    cmd_fields[config_idx + 1] = os.path.join(
         remote_config['Infrastructure']['remote_dir'], 'rconfig.conf')
     input_idx = get_any_index(cmd_fields, '-s', '--source')
-    cmd_fields[input_idx] = os.path.join(
+    cmd_fields[input_idx + 1] = os.path.join(
         remote_config['Infrastructure']['remote_dir'], 'input.lst')
     remote_config['cmd_line'] = ' '.join(cmd_fields)
     print(remote_config['cmd_line'])
