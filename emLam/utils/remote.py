@@ -162,16 +162,17 @@ def do_it(remote_config, local_args):
     """Runs the jobs parallelly."""
     hosts = remote_config['Resources']['hosts']
     infconf = remote_config['Infrastructure']
-    with cd(infconf['work_dir']):
-        tid = remote_config['Environment']['tmux']
-        execute(
-            run, "tmux send -t {} 'python {} {} > {} 2>&1' ENTER".format(
-                tid, os.path.join(infconf['remote_dir'], 'emLam',
-                                  'scripts', 'preprocess_corpus.py'),
-                remote_config['cmd_line'],
-                os.path.join(infconf['remote_dir'], 'emLam.log')),
-            hosts=hosts
-        )
+    tid = remote_config['Environment']['tmux']
+    execute(run, "tmux send -t {} 'cd {}' ENTER".format(
+        tid, os.path.abspath(infconf['work_dir'])), hosts=hosts)
+    execute(
+        run, "tmux send -t {} 'python {} {} > {} 2>&1' ENTER".format(
+            tid, os.path.join(infconf['remote_dir'], 'emLam',
+                              'scripts', 'preprocess_corpus.py'),
+            remote_config['cmd_line'],
+            os.path.join(infconf['remote_dir'], 'emLam.log')),
+        hosts=hosts
+    )
 
 
 def cleanup(remote_config, local_args):
