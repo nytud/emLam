@@ -83,11 +83,14 @@ def setup_environment(config, remote_dir, source_dir):
         source_venv = 'source {}'.format(os.path.join(venv_dir, 'bin/activate'))
         run(source_venv)
         run("tmux send -t {} '{}' ENTER".format(tid, source_venv))
+        run("tmux send -t {} 'pip install -U pip setuptools' ENTER".format(
+            tid))
         run("tmux send -t {} 'pip install -e {}' ENTER".format(
             tid, source_dir))
         run("tmux send -t {} 'touch {}' ENTER".format(tid, sentinel))
     elif config['allow_user_packages']:
         # Not in tmux, so that we can see if an error happens
+        run('pip install --user -U pip setuptools')
         run('pip install --user -e {}'.format(source_dir))
         run('touch {}'.format(sentinel))
     else:
