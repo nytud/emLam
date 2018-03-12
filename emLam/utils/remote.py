@@ -178,7 +178,7 @@ def run_emLam(remote_config, processes):
     run("tmux send -t {} 'python {} {} > {} 2>&1' ENTER".format(
         tid, os.path.join(infconf['remote_dir'], 'emLam',
                           'scripts', 'preprocess_corpus.py'),
-        ' '.join(cmd_line),
+        ' '.join(map(str, cmd_line)),
         os.path.join(infconf['remote_dir'], 'emLam.log')))
 
 
