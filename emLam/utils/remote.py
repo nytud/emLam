@@ -121,8 +121,9 @@ def input_chunks(local_args, processes):
     sfs = list(zip(
         *source_target_file_list(local_args.source, local_args.target_dir)))[0]
     t_chunks = list(grouper(sfs, sum(processes.values())))
-    t_chunks[-1] = [e for e in t_chunks[-1] if e]
-    chunks = list(zip(*t_chunks))
+    # t_chunks[-1] = [e for e in t_chunks[-1] if e]
+    chunks = list(zip_longest(*t_chunks))
+    chunks = [[f for f in chunk if f] for chunk in chunks]
     ret = {}
     i = 0
     for k, v in processes.items():
