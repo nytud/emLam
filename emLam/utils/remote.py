@@ -68,7 +68,7 @@ def setup_source(config, remote_dir):
 def setup_environment(config, remote_dir, source_dir):
     # Create the tmux session
     tid = config['tmux']
-    run('tmux new-session -A -d -s {}'.format(tid))
+    run('tmux new-session -d -s {}'.format(tid), warn_only=True)
 
     sentinel = '{}/pip_done'.format(remote_dir)
     if config['virtualenv']:
