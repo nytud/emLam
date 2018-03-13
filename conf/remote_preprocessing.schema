@@ -22,6 +22,9 @@ tmux = string()
 # used; if emLam is not available, it will be installed as a user-level package
 # (but see below).
 virtualenv = string(default="venv")
+# How much time to wait for the installation to finish. Only relevant for the
+# virtualenv case.
+install_timeout = integer(default=120)
 # Allow the installation of user-level packages. If disabled, the virtualenv
 # package must be available (see above).
 allow_user_packages = boolean(default=no)
