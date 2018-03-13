@@ -10,7 +10,7 @@ from io import StringIO
 import os
 import time
 
-from fabric.api import cd, env, execute, put, run, task
+from fabric.api import cd, env, execute, parallel, put, run, task
 from fabric.context_managers import settings
 from fabric.contrib import files
 
@@ -49,6 +49,7 @@ def setup_infrastructure(config, local_args):
 
 
 @task
+@parallel
 def setup_source(config, remote_dir):
     """Clones the git repository and updates it."""
     with cd(remote_dir):
@@ -63,6 +64,7 @@ def setup_source(config, remote_dir):
 
 
 @task
+@parallel
 def setup_environment(config, remote_dir, source_dir):
     # Create the tmux session
     tid = config['tmux']
