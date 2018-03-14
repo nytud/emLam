@@ -1,8 +1,12 @@
+#!/usr/bin/env python3
+
 """Remote execution for preprocess_corpus.py."""
 
+from __future__ import absolute_import, division, print_function
+
 try:
-    import itertools.izip_longest as zip_longest
-    import itertools.izip as zip
+    from itertools import izip_longest as zip_longest
+    from itertools import izip as zip
 except:
     from itertools import zip_longest
 
