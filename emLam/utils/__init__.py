@@ -83,16 +83,74 @@ def allname(fn):
     return __allname_p.match(fn).groups()
 
 
-def source_target_file_list(source_dir, target_dir):
+def walk_non_hidden(directory):
+    """Walks directory as os.walk, skipping hidden files and directories."""
+    def delete_hidden(lst):
+        for i in range(len(lst) - 1, -1, -1):
+            if lst[i][0] == '.':
+                del lst[i]
+
+    for tup in os.walk(directory):
+        dirpath, dirnames, filenames = tup
+        delete_hidden(dirnames)
+        delete_hidden(filenames)
+        yield tup
+
+
+def commonpath(paths):
+    """Same as os.path.commonpath, but it is only available from 3.5."""
+    common = op.commonprefix(paths)
+    while common[-1] != os.sep:
+        common = common[:-1]
+    return common
+
+
+def source_target_file_list(source, target_dir):
     """
-    Reads the list of files in source_dir, and returns a list of tuples, whose
-    first field is the path to the source file, and the second is the path to a
-    file with the same name in target_dir.
+    Based on the source and target directory provided, returns
+    source-target file pairs.
     """
-    files = filter(op.isfile,
-                   (op.join(source_dir, f) for f in os.listdir(source_dir)))
-    tuples = [(f, op.join(target_dir, op.basename(f))) for f in files]
-    return tuples
+    source = op.abspath(source)
+    target_dir = op.abspath(target_dir)
+
+    # Directory source
+    if op.isdir(source):
+        source_files = [op.abspath(op.join(d, f))
+                        for d, _, fs in walk_non_hidden(source) for f in fs]
+        source_dir = source
+    # File list source
+    elif op.isfile(source):
+        with openall(source) as inf:
+            source_files = [op.abspath(p) for p in inf.read().split()]
+        # To be able to keep the directory structure, if any. If there is no
+        # common path prefix, the target directory will be flat (see below)
+        source_dir = commonpath(source_files)
+        if source_dir == '/':  # FIXME: no idea how this works on Windows
+            source_dir = ''
+    else:
+        raise ValueError('Source {} does not exist.'.format(source))
+
+    target_files = []
+    for sf in source_files:
+        if source_dir:
+            sf_rel = sf[len(source_dir):].lstrip(os.sep)  # Structure
+        else:
+            sf_rel = op.basename(sf)  # Flat
+        tf = op.join(target_dir, sf_rel)
+        td = op.dirname(tf)
+        if not op.isdir(td):
+            os.makedirs(td)
+        target_files.append(tf)
+    return list(zip(source_files, target_files))
+
+
+def get_any_index(lst, *values):
+    """Returns the index of (the first of) a set of values in lst."""
+    for value in values:
+        try:
+            return lst.index(value)
+        except ValueError:
+            pass
 
 
 @contextmanager
