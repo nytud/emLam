@@ -12,7 +12,7 @@ def readme():
         return f.read()
 
 setup(name='emlam',
-      version='1.2.0',
+      version='1.2.1',
       description='Scripts and tools for Hungarian Language Modeling',
       long_description=readme(),
       url='https://github.com/DavidNemeskey/emLam',
@@ -62,6 +62,7 @@ setup(name='emlam',
           'scripts/shuffle_in_memory.py',
           'scripts/tsv_to_running_text.py',
           'scripts/uniq_corpus.py',
+          'scripts/count_vocab.py',
           'scripts/unk_corpus.py'
       ],
       # Tensorflow and numpy can be installed from requirement files, as they
@@ -73,7 +74,7 @@ setup(name='emlam',
           'requests',
           # An earlier version was broken (don't remember which); also,
           # iterparse is broken in 3.7.3. :)
-          'lxml==3.6.4',
+          'lxml',
           # Better configuration files.
           'configobj',
           # Better regex

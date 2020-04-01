@@ -3,14 +3,13 @@
 from __future__ import absolute_import, division, print_function
 from argparse import ArgumentParser
 from collections import Counter
-from functools import partial, reduce
+from functools import reduce
 from multiprocessing import Pool
 from operator import iadd
 import os
-import re
 import sys
 
-from emLam.utils import openall
+from emLam.utils import openall, source_target_file_list
 
 
 def parse_arguments():
@@ -20,6 +19,9 @@ def parse_arguments():
                         help='The source directory. The default is \'.\'.')
     parser.add_argument('--target-dir', '-t', default='.',
                         help='The target directory. The default is \'.\'.')
+    parser.add_argument('--pos-dir', '-p',
+                        help='The "pos" directory. For POS-categorized unks. '
+                             'Doesn\'t work.')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--n', '-n', type=int,
                        help='How many first occurrences to replace with '
@@ -31,7 +33,7 @@ def parse_arguments():
                         help='A vocabulary file. If used together with --min, '
                              'the counts will be read from here, and not '
                              'computed from the corpus.')
-    parser.add_argument('--processes', '-p', type=int, default=1,
+    parser.add_argument('--processes', '-P', type=int, default=1,
                         help='How many processes to use vocabulary counting or '
                              '--min.')
     args = parser.parse_args()
@@ -42,14 +44,10 @@ def parse_arguments():
         parser.error('Source and POs directories must differ.\n')
     elif args.target_dir == args.pos_dir:
         parser.error('Target and POs directories must differ.\n')
-    try:
-        source_regex = re.compile(args.source_regex if args.source_regex else '.*')
-    except:
-        parser.exit(1, 'Invalid source regex.\n')
     if args.vocab_file is not None and args.min is None:
         parser.error('--vocab-file has no effect if --min is not used.')
 
-    return (args.source_dir, args.target_dir, args.pos_dir, source_regex,
+    return (args.source_dir, args.target_dir, args.pos_dir,
             args.n, args.min, args.vocab_file, args.processes)
 
 
@@ -84,7 +82,7 @@ def unk_first(source_files, pos_files, target_files, n):
                             tokens[i] = '<unk-{}>'.format(ptokens[i].lower())
                         else:
                             tokens[i] = '<unk>'
-                print >>outfs[f], ' '.join(tokens)
+                print(' '.join(tokens), file=outfs[f])
 
 
 def _replace_file(in_out_files):
@@ -141,7 +139,7 @@ def freqs_dict_to_file(file_name, freqs):
 
 
 if __name__ == '__main__':
-    (source_dir, target_dir, pos_dir, source_regex,
+    (source_dir, target_dir, pos_dir,
      n, min_occ, vocab_file, processes) = parse_arguments()
 
     os.nice(20)  # Play nice
@@ -149,7 +147,9 @@ if __name__ == '__main__':
     if not os.path.isdir(target_dir):
         os.makedirs(target_dir)
 
-    files = source_target_file_list(args.source_dir, args.target_dir)
+    files = source_target_file_list(source_dir, target_dir)
+    source_files, target_files = zip(*files)
+    pos_files = [None for _ in files]
     if n:
         unk_first(source_files, pos_files, target_files, n)
     else:
