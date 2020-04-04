@@ -49,7 +49,7 @@ def main():
         os.makedirs(args.target_dir)
 
     input_files = [os.path.join(args.source_dir, f)
-                   for f in os.listdir(args.source_dir)]
+                   for f in sorted(os.listdir(args.source_dir))]
     inputs = [(f, subprocess.check_output('wc -l {}'.format(f), shell=True))
               for f in input_files]
 
