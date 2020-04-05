@@ -3,15 +3,13 @@
 
 """
 Splits a corpus into a train/valid/test split, keeping the original sentence
-order intact. The valid and test splits are taken from the beginning of each
-odd numbered file and from the end of each even numbered file.
+order intact.
 """
 
 from argparse import ArgumentParser
 from contextlib import ExitStack
 from itertools import islice
 import os
-import subprocess
 
 from emLam.utils import openall
 
@@ -25,6 +23,13 @@ def parse_arguments():
     parser.add_argument('--percent', '-p', type=int, default=5,
                         help='What percent of the data should be used for both '
                              'validation and testing. The default is 5.')
+    parser.add_argument('--where', '-w', choices=['front', 'back', 'both'],
+                        default='both',
+                        help='Where should the data of the valid and test '
+                             'splits come from each file. The default is '
+                             'both, which takes them from the beginning of '
+                             'each odd numbered file and from the end of '
+                             'each even numbered file.')
     args = parser.parse_args()
 
     if not (1 <= args.percent <= 20):
@@ -40,6 +45,13 @@ def copy_stream(inf, outf, lines):
         outf.write(line)
 
 
+def wc(file):
+    with openall(file) as inf:
+        for line_no, _ in enumerate(inf, start=1):
+            pass
+    return line_no
+
+
 def main():
     args = parse_arguments()
 
@@ -50,8 +62,7 @@ def main():
 
     input_files = [os.path.join(args.source_dir, f)
                    for f in sorted(os.listdir(args.source_dir))]
-    inputs = [(f, subprocess.check_output('wc -l {}'.format(f), shell=True))
-              for f in input_files]
+    inputs = [(f, wc(f)) for f in input_files]
 
     with ExitStack() as stack:
         train = stack.enter_context(
@@ -63,13 +74,13 @@ def main():
 
         for fid, (f, lines) in enumerate(inputs, start=1):
             with openall(f) as inf:
-                valid_sents = test_sents = lines * args.percent / 100
+                valid_sents = test_sents = int(lines * args.percent / 100)
                 train_sents = lines - valid_sents - test_sents
-                if fid % 2 == 0:
+                if args.where == 'back' or args.where == 'both' and (fid % 2 == 0):
                     copy_stream(inf, train, train_sents)
                 copy_stream(inf, valid, valid_sents)
                 copy_stream(inf, test, test_sents)
-                if fid % 2 == 1:
+                if args.where == 'front' or args.where == 'both' and (fid % 2 == 1):
                     copy_stream(inf, train, train_sents)
 
 
