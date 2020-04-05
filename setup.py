@@ -12,7 +12,7 @@ def readme():
         return f.read()
 
 setup(name='emlam',
-      version='1.2.1',
+      version='1.2.2',
       description='Scripts and tools for Hungarian Language Modeling',
       long_description=readme(),
       url='https://github.com/DavidNemeskey/emLam',
@@ -63,7 +63,8 @@ setup(name='emlam',
           'scripts/tsv_to_running_text.py',
           'scripts/uniq_corpus.py',
           'scripts/count_vocab.py',
-          'scripts/unk_corpus.py'
+          'scripts/unk_corpus.py',
+          'scripts/orig_order_corpus.py',
       ],
       # Tensorflow and numpy can be installed from requirement files, as they
       # are only required if the nn module / scripts are used.
